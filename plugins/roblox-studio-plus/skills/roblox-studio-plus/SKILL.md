@@ -20,7 +20,9 @@ Call `studio_status`. If it returns `versionWarning`, tell the user to copy the 
    - properties → `set_properties`; attributes → `set_attributes`; tags → `manage_tags`
    - structure → `create_instance`, `clone_instance`, `reparent_instances`, `delete_instances`
    - a whole hierarchy (ScreenGui with frames/buttons, a model, a folder of RemoteEvents) → `create_tree` in one call instead of many `create_instance`
-   - existing assets by ID → `insert_asset` (reuse what the project already owns before building new)
+   - existing assets by ID → `insert_asset` (reuse what the project already owns before building new). It audits the asset's scripts first and refuses high-severity backdoor patterns; show the user the `findings` and `scripts` it returns, and only retry with `allowSuspicious` if they explicitly accept the risk.
+   - several related changes → `batch` so they land as one undo step and roll back together
+   - terrain → `terrain_fill` (block/ball/cylinder; material `Air` carves)
    - placement → `get_bounds` for sizes/top/bottom, `raycast` to find the ground
    - anything else → `run_luau` (still one undo step)
    - show the user the code you are talking about → `open_script` at the line
@@ -63,6 +65,7 @@ Roblox video ads are rejected for: footage of mechanics/UI not in the game, grap
 
 ## Safety
 
+- After any free model enters the place (yours, the official MCP's `insert_model`, or the user's), run `audit_scripts` on it. Report findings as leads to review, not proof — legitimate code can use `require(id)` for official modules.
 - `delete_instances` refuses services, Terrain and the current camera. Still inspect first and list what you will delete.
 - `run_luau` runs with plugin permissions in the edit place. Do not use it to bypass the dedicated tools, make HTTP calls, or touch anything the user did not ask for.
 - Validate gameplay logic server-side in the scripts you write; never trust client input for damage, ammo, cooldowns, team or permissions.

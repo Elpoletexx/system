@@ -245,10 +245,14 @@ export const TOOLS = [
   },
   {
     name: "insert_asset",
-    description: "Insert an asset by ID with InsertService:LoadAsset (assets you or Roblox own, or free Creator Store assets). Undoable. Use the official MCP's insert_model to search by name instead.",
+    description: "Insert an asset by ID with InsertService:LoadAsset. Its scripts are audited BEFORE insertion; assets with high-severity backdoor patterns are refused unless allowSuspicious. Lists every script it brings in. Undoable.",
     inputSchema: {
       type: "object",
-      properties: { assetId: { type: "integer", minimum: 1 }, parent: { ...path, default: "Workspace" } },
+      properties: {
+        assetId: { type: "integer", minimum: 1 },
+        parent: { ...path, default: "Workspace" },
+        allowSuspicious: { type: "boolean", default: false, description: "Insert even if its scripts match high-severity backdoor patterns. Only with the user's explicit OK." },
+      },
       required: ["assetId"],
     },
   },
@@ -276,6 +280,51 @@ export const TOOLS = [
     },
   },
   {
+    name: "audit_scripts",
+    description: "Scan scripts for common backdoor/obfuscation signatures (require by asset ID, loadstring, getfenv, Discord webhooks, PostAsync, escaped byte strings, packed lines). Use after inserting free models or when a place behaves strangely. Findings are leads to review, not proof.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        root: { ...path, default: "game" },
+        minSeverity: { type: "string", enum: ["low", "medium", "high"], default: "low" },
+      },
+    },
+  },
+  {
+    name: "terrain_fill",
+    description: "Fill terrain with a block, ball or cylinder of a material (use material \"Air\" to carve/clear). Undoable.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        shape: { type: "string", enum: ["block", "ball", "cylinder"] },
+        material: { type: "string", description: "Enum.Material name, e.g. Grass, Rock, Water, Sand, Air." },
+        position: { type: "array", items: { type: "number" }, minItems: 3, maxItems: 3 },
+        size: { type: "array", items: { type: "number" }, minItems: 3, maxItems: 3, description: "block only" },
+        radius: { type: "number", minimum: 0.5, description: "ball and cylinder" },
+        height: { type: "number", minimum: 0.5, description: "cylinder only" },
+        orientation: { type: "array", items: { type: "number" }, minItems: 3, maxItems: 3, description: "Degrees, block and cylinder." },
+      },
+      required: ["shape", "material", "position"],
+    },
+  },
+  {
+    name: "batch",
+    description: "Run up to 50 tool calls as ONE undo step; if any step fails, everything is rolled back. Not allowed inside: batch, undo, redo, camera_path, camera_orbit.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        steps: {
+          type: "array",
+          minItems: 1,
+          maxItems: 50,
+          items: { type: "object", properties: { tool: { type: "string" }, args: { type: "object" } }, required: ["tool"] },
+        },
+      },
+      required: ["steps"],
+    },
+    timeoutMs: () => 120_000,
+  },
+  {
     name: "get_output",
     description: "Read Studio Output messages captured by the plugin. Pass 'since' (the last seq you saw) to get only new lines.",
     inputSchema: {
@@ -293,5 +342,7 @@ export const TOOLS = [
     inputSchema: { type: "object", properties: { code: { type: "string", minLength: 1 } }, required: ["code"] },
   },
 ];
+
+export const BATCH_BLOCKED = new Set(["batch", "undo", "redo", "camera_path", "camera_orbit"]);
 
 export const TOOL_BY_NAME = new Map(TOOLS.map((t) => [t.name, t]));

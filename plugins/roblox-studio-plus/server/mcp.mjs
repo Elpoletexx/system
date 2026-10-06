@@ -1,8 +1,8 @@
 // MCP request handling (JSON-RPC 2.0), independent of the transport.
 
-import { TOOLS, TOOL_BY_NAME } from "./tools.mjs";
+import { TOOLS, TOOL_BY_NAME, BATCH_BLOCKED } from "./tools.mjs";
 
-export const SERVER_INFO = { name: "roblox-studio-plus", version: "0.2.0" };
+export const SERVER_INFO = { name: "roblox-studio-plus", version: "0.3.0" };
 const DEFAULT_TIMEOUT_MS = 60_000;
 const SUPPORTED_PROTOCOLS = ["2025-06-18", "2025-03-26", "2024-11-05"];
 
@@ -32,6 +32,17 @@ export function validateArgs(schema, args) {
     if (t === "string" && prop.minLength && value.length < prop.minLength) return `argument '${key}' must not be empty`;
     if (t === "array" && prop.minItems && value.length < prop.minItems) return `argument '${key}' needs at least ${prop.minItems} item(s)`;
     if (prop.enum && !prop.enum.includes(value)) return `argument '${key}' must be one of ${prop.enum.join(", ")}`;
+  }
+  if (schema.properties?.steps && Array.isArray(args.steps)) {
+    if (args.steps.length > (schema.properties.steps.maxItems ?? Infinity)) return "too many steps";
+    for (const [i, step] of args.steps.entries()) {
+      if (!step || typeof step !== "object" || typeof step.tool !== "string") return `step ${i + 1} needs a 'tool'`;
+      const inner = TOOL_BY_NAME.get(step.tool);
+      if (!inner) return `step ${i + 1}: unknown tool '${step.tool}'`;
+      if (BATCH_BLOCKED.has(step.tool) || inner.local) return `step ${i + 1}: '${step.tool}' cannot run inside batch`;
+      const problem = validateArgs(inner.inputSchema, step.args);
+      if (problem) return `step ${i + 1} (${step.tool}): ${problem}`;
+    }
   }
   return null;
 }

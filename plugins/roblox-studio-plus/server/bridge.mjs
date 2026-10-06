@@ -8,6 +8,11 @@ import { randomUUID } from "node:crypto";
 const POLL_WAIT_MS = 20_000;
 const CONNECTED_WINDOW_MS = 30_000;
 const MAX_BODY_BYTES = 16 * 1024 * 1024;
+const MAX_WAITERS = 4;
+// Studio sends this header on every request. Web pages cannot add custom headers to
+// cross-origin requests without a CORS preflight (which this server never approves),
+// so requiring it stops <img>/no-cors tricks from stealing queued commands.
+export const CLIENT_HEADER = "x-studio-plus";
 
 export class StudioBridge {
   constructor({ port, host = "127.0.0.1", log = () => {} }) {
@@ -18,6 +23,7 @@ export class StudioBridge {
     this.pending = new Map(); // id -> { resolve, reject, timer, command }
     this.waiters = []; // long-poll responses waiting for a command
     this.lastPollAt = 0;
+    this.pluginVersion = null;
     this.listenError = null;
     this.server = http.createServer((req, res) => this.#handle(req, res));
   }
@@ -112,8 +118,15 @@ export class StudioBridge {
       return this.#json(res, 200, { ok: true, name: "roblox-studio-plus" });
     }
 
+    const isStudio = typeof req.headers[CLIENT_HEADER] === "string";
+    if ((url.pathname === "/poll" || url.pathname === "/result") && !isStudio) {
+      return this.#json(res, 403, { error: "missing client header" });
+    }
+
     if (req.method === "GET" && url.pathname === "/poll") {
       this.lastPollAt = Date.now();
+      this.pluginVersion = req.headers[CLIENT_HEADER];
+      if (this.waiters.length >= MAX_WAITERS) return this.#json(res, 429, { error: "too many pollers" });
       if (this.queue.length > 0) return this.#json(res, 200, this.queue.shift());
       const timer = setTimeout(() => {
         this.waiters = this.waiters.filter((w) => w !== res);

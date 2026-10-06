@@ -29,6 +29,17 @@ test("Luau path helpers", { skip: !available && "luau binary not found" }, async
   assert.match(run.stdout, /paths OK/);
 });
 
+test("Luau script audit rules", { skip: !available && "luau binary not found" }, async () => {
+  const rules = await section("local AUDIT_RULES = {", "local function auditTree(");
+  const harness = await readFile(new URL("./luau/audit.test.luau", import.meta.url), "utf8");
+  const dir = await mkdtemp(join(tmpdir(), "rsp-luau-"));
+  const file = join(dir, "audit.luau");
+  await writeFile(file, harness.replace("--@@AUDIT@@", rules));
+  const run = spawnSync(LUAU, [file], { encoding: "utf8" });
+  assert.equal(run.status, 0, run.stderr || run.stdout);
+  assert.match(run.stdout, /audit OK/);
+});
+
 test("Luau plugin compiles", { skip: !available && "luau binary not found" }, async () => {
   const compiler = LUAU.replace(/luau(\.exe)?$/, "luau-compile$1");
   const file = new URL("../studio-plugin/RobloxStudioPlus.server.lua", import.meta.url).pathname;

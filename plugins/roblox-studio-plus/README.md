@@ -19,6 +19,9 @@ El MCP oficial de Roblox trae `run_code`, `insert_model`, `get_console_output`, 
 - **Atributos y tags:** `set_attributes`, `manage_tags`
 - **Studio:** `get_selection`, `set_selection`, `undo`, `redo`, `get_output`
 - **Cámara para trailers:** `camera_get`, `camera_set` (encuadra una instancia), `camera_orbit` (gira alrededor de un modelo), `camera_path` (vuelo suave entre puntos clave, con cuenta atrás para empezar a grabar)
+- **Seguridad:** `audit_scripts` busca firmas típicas de backdoors de modelos gratuitos (`require(ID)`, `loadstring`, `getfenv`, webhooks de Discord, `PostAsync`, código ofuscado). `insert_asset` revisa los scripts del asset **antes** de meterlo y lo rechaza si encuentra algo grave.
+- **Varias operaciones juntas:** `batch` ejecuta hasta 50 herramientas como un solo Ctrl+Z; si una falla, se deshace todo.
+- **Terreno:** `terrain_fill` (bloque, esfera o cilindro de un material; `Air` para excavar)
 - **Comodín:** `run_luau` (devuelve los prints y los valores de retorno, y también se puede deshacer)
 
 Los dos MCP pueden estar instalados a la vez (usan puertos distintos).
@@ -48,6 +51,8 @@ Solo una sesión de Claude a la vez puede usar el puerto.
 ## Seguridad
 
 - El servidor solo escucha en `127.0.0.1`. Rechaza peticiones que vengan de navegadores (cabecera `Origin`) y con `Host` que no sea local, para evitar ataques de DNS rebinding.
+- Studio manda una cabecera propia (`X-Studio-Plus`) en cada petición. Una página web no puede añadirla sin permiso CORS (que el servidor nunca da), así que una web no puede robar ni contestar comandos.
+- Límite conocido: cualquier programa que ya se ejecute en tu PC podría abrir el puerto antes que Claude y mandar órdenes a Studio. Ese programa ya tendría acceso a tus archivos (incluida la carpeta de plugins de Studio), así que no añade un riesgo nuevo, pero desconecta el plugin (**Connect**) cuando no lo uses.
 - No hace nada hasta que pulsas **Connect** en Studio.
 - `delete_instances` no deja borrar servicios, Terrain ni la cámara.
 - Todos los argumentos se validan dos veces: en el servidor y otra vez en Studio.

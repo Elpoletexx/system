@@ -22,7 +22,7 @@ if not RunService:IsEdit() then
 	return
 end
 
-local VERSION = "0.2.0"
+local VERSION = "0.3.0"
 local PORT = 44877 -- must match ROBLOX_STUDIO_PLUS_PORT on the MCP server (default 44877)
 local BASE_URL = "http://localhost:" .. PORT
 local SETTING_ENABLED = "RobloxStudioPlus_Enabled"
@@ -449,9 +449,17 @@ end
 -- Undo integration
 ---------------------------------------------------------------------------
 
+local recordingDepth = 0
+
+-- One undo step per tool call. Nested calls (batch, run_luau calling tools) join the outer step.
 local function withUndo(name, fn)
+	if recordingDepth > 0 then
+		return fn()
+	end
 	local recording = ChangeHistoryService:TryBeginRecording("Claude: " .. name)
+	recordingDepth += 1
 	local ok, result = pcall(fn)
+	recordingDepth -= 1
 	if recording then
 		ChangeHistoryService:FinishRecording(
 			recording,
@@ -665,6 +673,68 @@ local function samplePath(frames, t)
 		fov = fa + (fb - fa) * u
 	end
 	return pos, look, fov
+end
+
+---------------------------------------------------------------------------
+-- Script audit (common free-model backdoor / obfuscation signatures)
+---------------------------------------------------------------------------
+
+local AUDIT_RULES = {
+	{ id = "remote-require", severity = "high", pattern = "require%s*%(%s*%d%d%d%d+", why = "require() by asset ID loads code from outside the place (classic backdoor)" },
+	{ id = "remote-require-tonumber", severity = "high", pattern = "require%s*%(%s*tonumber", why = "require() of a computed asset ID (hidden backdoor)" },
+	{ id = "loadstring", severity = "high", pattern = "loadstring%s*%(", why = "runs code built from a string" },
+	{ id = "discord-webhook", severity = "high", pattern = "discord[app]*%.com/api/webhooks", why = "sends data to a Discord webhook" },
+	{ id = "getfenv", severity = "medium", pattern = "getfenv%s*%(", why = "environment tampering, often used to hide require/loadstring" },
+	{ id = "setfenv", severity = "medium", pattern = "setfenv%s*%(", why = "environment tampering" },
+	{ id = "http-out", severity = "medium", pattern = ":%s*PostAsync%s*%(", why = "sends data to an external server" },
+	{ id = "runtime-insert", severity = "medium", pattern = "LoadAsset%s*%(", why = "loads assets at runtime" },
+	{ id = "escaped-bytes", severity = "medium", pattern = "\\%d+\\%d+\\%d+\\%d+", why = "byte-escaped strings (obfuscation)" },
+	{ id = "string-reverse", severity = "low", pattern = "string%.reverse%s*%(", why = "reversed strings (sometimes obfuscation)" },
+	{ id = "char-build", severity = "low", pattern = "string%.char%s*%(%s*%d+%s*,%s*%d+%s*,%s*%d+", why = "strings built from char codes (sometimes obfuscation)" },
+}
+local LONG_LINE = 2000
+
+local function auditSource(source)
+	local findings = {}
+	for lineNo, line in string.split(source, "\n") do
+		for _, rule in AUDIT_RULES do
+			if string.find(line, rule.pattern) then
+				table.insert(findings, { line = lineNo, rule = rule.id, severity = rule.severity, why = rule.why, text = string.sub(line, 1, 200) })
+			end
+		end
+		if #line > LONG_LINE then
+			table.insert(findings, { line = lineNo, rule = "long-line", severity = "medium", why = ("line is %d characters (possible packed payload)"):format(#line), text = string.sub(line, 1, 120) })
+		end
+	end
+	return findings
+end
+
+local function auditTree(root)
+	local results, high = {}, 0
+	local function check(s)
+		local ok, source = pcall(function()
+			return s.Source
+		end)
+		if not ok then
+			return
+		end
+		for _, finding in auditSource(source) do
+			finding.path = pathOf(s)
+			if finding.severity == "high" then
+				high += 1
+			end
+			table.insert(results, finding)
+		end
+	end
+	if root:IsA("LuaSourceContainer") then
+		check(root)
+	end
+	for _, d in root:GetDescendants() do
+		if d:IsA("LuaSourceContainer") then
+			check(d)
+		end
+	end
+	return results, high
 end
 
 ---------------------------------------------------------------------------
@@ -1284,11 +1354,26 @@ function handlers.insert_asset(args)
 		error("assetId must be a positive integer", 0)
 	end
 	local parent = resolve(argString(args, "parent", true) or "Workspace")
+	local allowSuspicious = args.allowSuspicious == true
 	local InsertService = game:GetService("InsertService")
 	local ok, container = pcall(InsertService.LoadAsset, InsertService, assetId)
 	if not ok then
 		error(("could not load asset %d: %s"):format(assetId, tostring(container)), 0)
 	end
+
+	-- Audit while the asset is still outside the place.
+	local findings, high = auditTree(container)
+	local scripts = {}
+	for _, d in container:GetDescendants() do
+		if d:IsA("LuaSourceContainer") then
+			table.insert(scripts, d.ClassName .. " " .. d:GetFullName())
+		end
+	end
+	if high > 0 and not allowSuspicious then
+		container:Destroy()
+		return { assetId = assetId, inserted = {}, refused = true, scripts = scripts, findings = findings, note = "Asset contains high-severity script patterns and was NOT inserted. Review the findings; pass allowSuspicious=true only if the user confirms." }
+	end
+
 	local inserted = {}
 	withUndo("insert asset " .. assetId, function()
 		for _, child in container:GetChildren() do
@@ -1297,7 +1382,59 @@ function handlers.insert_asset(args)
 		end
 	end)
 	container:Destroy()
-	return { assetId = assetId, inserted = inserted }
+	return { assetId = assetId, inserted = inserted, scripts = scripts, findings = findings }
+end
+
+function handlers.audit_scripts(args)
+	local root = resolve(argString(args, "root", true))
+	local minSeverity = args.minSeverity
+	local rank = { low = 1, medium = 2, high = 3 }
+	local floor = rank[minSeverity] or 1
+	local results, total = {}, 0
+	local function collect(container)
+		local findings = auditTree(container)
+		for _, f in findings do
+			if rank[f.severity] >= floor then
+				total += 1
+				if #results < 500 then
+					table.insert(results, f)
+				end
+			end
+		end
+	end
+	if root == game then
+		for _, service in game:GetChildren() do
+			pcall(collect, service)
+		end
+	else
+		collect(root)
+	end
+	return { count = total, returned = #results, findings = results }
+end
+
+function handlers.terrain_fill(args)
+	local shape = argString(args, "shape")
+	local material = enumItemFrom("Material", argString(args, "material"))
+	local position = Vector3.new(numbers(args.position, 3, "position"))
+	local rotation = CFrame.new()
+	if args.orientation ~= nil then
+		local rx, ry, rz = numbers(args.orientation, 3, "orientation")
+		rotation = CFrame.fromOrientation(math.rad(rx), math.rad(ry), math.rad(rz))
+	end
+	local cf = CFrame.new(position) * rotation
+	local terrain = workspace.Terrain
+	withUndo("terrain " .. shape, function()
+		if shape == "block" then
+			terrain:FillBlock(cf, Vector3.new(numbers(args.size, 3, "size")), material)
+		elseif shape == "ball" then
+			terrain:FillBall(position, argNumber(args, "radius", nil, 0.5, 2048), material)
+		elseif shape == "cylinder" then
+			terrain:FillCylinder(cf, argNumber(args, "height", nil, 0.5, 4096), argNumber(args, "radius", nil, 0.5, 2048), material)
+		else
+			error("shape must be block, ball or cylinder", 0)
+		end
+	end)
+	return { shape = shape, material = material.Name, position = { position.X, position.Y, position.Z } }
 end
 
 function handlers.open_script(args)
@@ -1348,6 +1485,34 @@ function handlers.raycast(args)
 		material = hit.Material.Name,
 		distance = hit.Distance,
 	}
+end
+
+local BATCH_BLOCKED = { batch = true, undo = true, redo = true, camera_path = true, camera_orbit = true }
+
+function handlers.batch(args)
+	local steps = args.steps
+	if type(steps) ~= "table" or #steps == 0 or #steps > 50 then
+		error("steps must be a list of 1-50 {tool, args}", 0)
+	end
+	for i, step in steps do
+		if type(step) ~= "table" or type(step.tool) ~= "string" or handlers[step.tool] == nil then
+			error(("step %d: unknown tool %s"):format(i, tostring(type(step) == "table" and step.tool)), 0)
+		end
+		if BATCH_BLOCKED[step.tool] then
+			error(("step %d: %s cannot run inside batch"):format(i, step.tool), 0)
+		end
+	end
+	local results = {}
+	withUndo("batch", function()
+		for i, step in steps do
+			local ok, result = pcall(handlers[step.tool], type(step.args) == "table" and step.args or {})
+			if not ok then
+				error(("step %d (%s) failed, whole batch rolled back: %s"):format(i, step.tool, tostring(result)), 0)
+			end
+			results[i] = { tool = step.tool, result = result }
+		end
+	end)
+	return { steps = #results, results = results }
 end
 
 function handlers.get_output(args)
@@ -1424,7 +1589,7 @@ local function request(method, path, body)
 	return HttpService:RequestAsync({
 		Url = BASE_URL .. path,
 		Method = method,
-		Headers = { ["Content-Type"] = "application/json" },
+		Headers = { ["Content-Type"] = "application/json", ["X-Studio-Plus"] = VERSION },
 		Body = body and HttpService:JSONEncode(body) or nil,
 	})
 end

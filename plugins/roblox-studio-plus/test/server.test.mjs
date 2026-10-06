@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { StudioBridge } from "../server/bridge.mjs";
+import { StudioBridge, CLIENT_HEADER } from "../server/bridge.mjs";
 import { createServer, validateArgs } from "../server/mcp.mjs";
 import { TOOLS } from "../server/tools.mjs";
 
@@ -16,13 +16,13 @@ async function startBridge() {
 // Fake Studio plugin: polls once and answers with `respond(command)`.
 async function fakeStudioOnce(bridge, respond) {
   const base = `http://127.0.0.1:${bridge.port}`;
-  const res = await fetch(`${base}/poll`);
+  const res = await fetch(`${base}/poll`, { headers: { [CLIENT_HEADER]: "test" } });
   if (res.status === 204) return null;
   const command = await res.json();
   const reply = await respond(command);
   await fetch(`${base}/result`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", [CLIENT_HEADER]: "test" },
     body: JSON.stringify({ id: command.id, ...reply }),
   });
   return command;
@@ -111,8 +111,16 @@ test("bridge rejects browser-origin and foreign-host requests", async () => {
   assert.equal(withOrigin.status, 403);
   const ok = await fetch(`${base}/health`);
   assert.equal(ok.status, 200);
-  const unknown = await fetch(`${base}/result`, { method: "POST", body: JSON.stringify({ id: "nope", ok: true }) });
+  const unknown = await fetch(`${base}/result`, {
+    method: "POST",
+    headers: { [CLIENT_HEADER]: "test" },
+    body: JSON.stringify({ id: "nope", ok: true }),
+  });
   assert.equal(unknown.status, 404);
+  // A web page can trigger a plain GET (e.g. <img src>) but cannot add the client header.
+  const noHeader = await fetch(`${base}/poll`);
+  assert.equal(noHeader.status, 403);
+  assert.equal(bridge.lastPollAt, 0, "header-less poll must not count as Studio being connected");
   await bridge.close();
 });
 
@@ -167,4 +175,20 @@ test("studio_status warns when plugin and server versions differ", async () => {
   await studio;
   assert.match(result.content[0].text, /versionWarning/);
   await bridge.close();
+});
+
+test("batch steps are validated against each tool's schema", async () => {
+  const { BATCH_BLOCKED } = await import("../server/tools.mjs");
+  const schema = TOOLS.find((t) => t.name === "batch").inputSchema;
+  assert.equal(validateArgs(schema, { steps: [{ tool: "set_properties", args: { paths: ["Workspace.A"], properties: { Anchored: true } } }] }), null);
+  assert.match(validateArgs(schema, { steps: [{ tool: "nope" }] }), /unknown tool/);
+  assert.match(validateArgs(schema, { steps: [{ tool: "undo" }] }), /cannot run inside batch/);
+  assert.match(validateArgs(schema, { steps: [{ tool: "batch", args: { steps: [] } }] }), /cannot run inside batch/);
+  assert.match(validateArgs(schema, { steps: [{ tool: "delete_instances", args: {} }] }), /step 1 \(delete_instances\): missing required argument 'paths'/);
+  assert.match(validateArgs(schema, { steps: [] }), /at least 1/);
+
+  const { readFile } = await import("node:fs/promises");
+  const lua = await readFile(new URL("../studio-plugin/RobloxStudioPlus.server.lua", import.meta.url), "utf8");
+  const luaBlocked = new Set([...lua.match(/local BATCH_BLOCKED = \{([^}]*)\}/)[1].matchAll(/(\w+) = true/g)].map((m) => m[1]));
+  assert.deepEqual([...luaBlocked].sort(), [...BATCH_BLOCKED].sort(), "batch blocklists must match");
 });

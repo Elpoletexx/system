@@ -1,6 +1,6 @@
 {
   "name": "roblox-studio-plus",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Extra Roblox Studio control for Claude: instance tree, typed properties, undoable edits, script find/replace and grep, tags/attributes, selection, output, and cinematic camera paths for trailer recording. Works alongside the official Roblox Studio MCP.",
   "author": { "name": "elpoletexx" },
   "license": "MIT",

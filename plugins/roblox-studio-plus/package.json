@@ -1,6 +1,6 @@
 {
   "name": "roblox-studio-plus",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "MCP server + Roblox Studio plugin that give Claude extra Studio tools.",
