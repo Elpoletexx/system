@@ -45,7 +45,7 @@ export const TOOLS = [
   },
   {
     name: "find_instances",
-    description: "Search descendants by class (IsA), exact name, Lua name pattern, CollectionService tag or attribute name. Returns paths.",
+    description: "Search descendants by class (IsA), exact name, Lua name pattern, tag, attribute, or property values (where). Returns paths, optionally with properties.",
     inputSchema: {
       type: "object",
       properties: {
@@ -55,6 +55,12 @@ export const TOOLS = [
         namePattern: { type: "string", description: "Lua string pattern matched against Name." },
         tag: { type: "string" },
         attribute: { type: "string", description: "Only instances that have this attribute set." },
+        where: {
+          type: "object",
+          additionalProperties: true,
+          description: 'Property filters, all must match: {"Anchored": false, "Material": "Neon", "Color": "#ff0000", "Size": [4,1,2]}. Numbers/vectors compare with a small tolerance.',
+        },
+        properties: { type: "array", items: { type: "string" }, description: "Also return these properties for each result." },
         limit: { type: "integer", minimum: 1, maximum: 2000, default: 200 },
       },
     },
@@ -180,8 +186,11 @@ export const TOOLS = [
   {
     name: "undo",
     mutating: true,
-    description: "Undo the last Studio change-history step(s).",
-    inputSchema: { type: "object", properties: { steps: { type: "integer", minimum: 1, maximum: 50, default: 1 } } },
+    description: "Undo the last Studio change-history step(s) made by Claude. Stops (without undoing) at the first step the user made, unless force=true — only force after the user agrees.",
+    inputSchema: {
+      type: "object",
+      properties: { steps: { type: "integer", minimum: 1, maximum: 50, default: 1 }, force: { type: "boolean", default: false } },
+    },
   },
   {
     name: "redo",
@@ -319,6 +328,28 @@ export const TOOLS = [
         orientation: { type: "array", items: { type: "number" }, minItems: 3, maxItems: 3, description: "Degrees, block and cylinder." },
       },
       required: ["shape", "material", "position"],
+    },
+  },
+  {
+    name: "analyze_remotes",
+    description: "Map every RemoteEvent/RemoteFunction: which scripts fire it and which handle it (client vs server), and warn about server handlers with no visible argument checks, client-fired remotes with no server handler, and unused remotes. Heuristic (matches remote names in source).",
+    inputSchema: { type: "object", properties: { root: { ...path, default: "game", description: "Only remotes under this path." } } },
+  },
+  {
+    name: "snapshot",
+    description: "Record the state of a subtree (classes, common properties, attributes, script source hashes) in Studio memory. Take one before a change, then diff_snapshot after it to see exactly what changed and catch regressions.",
+    inputSchema: {
+      type: "object",
+      properties: { root: { ...path, default: "Workspace" }, name: { type: "string", description: "Snapshot name (re-using a name replaces it). Max 5 kept." } },
+    },
+  },
+  {
+    name: "diff_snapshot",
+    description: "Compare a subtree with a snapshot: instances added, removed, and which properties/attributes/sources changed.",
+    inputSchema: {
+      type: "object",
+      properties: { name: { type: "string" }, limit: { type: "integer", minimum: 1, maximum: 2000, default: 200 } },
+      required: ["name"],
     },
   },
   {

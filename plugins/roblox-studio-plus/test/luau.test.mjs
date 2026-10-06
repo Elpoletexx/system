@@ -41,6 +41,17 @@ test("Luau script audit rules", { skip: !available && "luau binary not found" },
   assert.match(run.stdout, /audit OK/);
 });
 
+test("Luau remote-name matching", { skip: !available && "luau binary not found" }, async () => {
+  const helper = await section("local function escapePattern(", "local function scriptSide(");
+  const harness = await readFile(new URL("./luau/remotes.test.luau", import.meta.url), "utf8");
+  const dir = await mkdtemp(join(tmpdir(), "rsp-luau-"));
+  const file = join(dir, "remotes.luau");
+  await writeFile(file, harness.replace("--@@ESCAPE@@", helper));
+  const run = spawnSync(LUAU, [file], { encoding: "utf8" });
+  assert.equal(run.status, 0, run.stderr || run.stdout);
+  assert.match(run.stdout, /remotes OK/);
+});
+
 test("Luau plugin compiles", { skip: !available && "luau binary not found" }, async () => {
   const compiler = LUAU.replace(/luau(\.exe)?$/, "luau-compile$1");
   const file = fileURLToPath(new URL("../studio-plugin/RobloxStudioPlus.server.lua", import.meta.url));

@@ -22,7 +22,7 @@ if not RunService:IsEdit() then
 	return
 end
 
-local VERSION = "0.6.0"
+local VERSION = "1.0.0"
 local PORT = 44877 -- must match ROBLOX_STUDIO_PLUS_PORT on the MCP server (default 44877)
 local BASE_URL = "http://localhost:" .. PORT
 local SETTING_ENABLED = "RobloxStudioPlus_Enabled"
@@ -792,6 +792,33 @@ end
 -- Tool handlers
 ---------------------------------------------------------------------------
 
+-- Compare a live property value with a plain JSON expectation (used by find_instances `where`).
+local function valueMatches(actual, expected)
+	local enc = encode(actual)
+	if type(enc) ~= "table" then
+		if type(enc) == "number" and type(expected) == "number" then
+			return math.abs(enc - expected) < 1e-4
+		end
+		return enc == expected
+	end
+	local kind = enc["$type"]
+	if kind == "EnumItem" or kind == "BrickColor" then
+		return enc.value == expected
+	elseif kind == "Instance" then
+		return enc.path == expected
+	elseif kind == "Color3" and type(expected) == "string" then
+		return string.lower(enc.hex) == string.lower(expected)
+	elseif type(enc.value) == "table" and type(expected) == "table" and #enc.value == #expected then
+		for i, v in enc.value do
+			if type(v) ~= "number" or type(expected[i]) ~= "number" or math.abs(v - expected[i]) > 1e-3 then
+				return false
+			end
+		end
+		return true
+	end
+	return false
+end
+
 local SETTING_READ_ONLY = "RobloxStudioPlus_ReadOnly"
 local readOnly = plugin:GetSetting(SETTING_READ_ONLY) == true
 
@@ -875,6 +902,8 @@ function handlers.find_instances(args)
 	local tag = argString(args, "tag", true)
 	local attribute = argString(args, "attribute", true)
 	local limit = argNumber(args, "limit", 200, 1, 2000)
+	local where = argMap(args, "where", true)
+	local include = argStringList(args, "properties", true)
 
 	if pattern then
 		local ok, err = pcall(string.find, "", pattern)
@@ -915,9 +944,28 @@ function handlers.find_instances(args)
 			and (pattern == nil or string.find(inst.Name, pattern) ~= nil)
 			and (attribute == nil or inst:GetAttribute(attribute) ~= nil)
 		if match then
+			for prop, expected in where do
+				local ok, actual = readProperty(inst, prop)
+				if not ok or not valueMatches(actual, expected) then
+					match = false
+					break
+				end
+			end
+		end
+		if match then
 			total += 1
 			if #results < limit then
-				table.insert(results, { path = pathOf(inst), className = inst.ClassName })
+				local entry = { path = pathOf(inst), className = inst.ClassName }
+				if #include > 0 then
+					entry.properties = {}
+					for _, prop in include do
+						local ok, value = readProperty(inst, prop)
+						if ok then
+							entry.properties[prop] = encode(value)
+						end
+					end
+				end
+				table.insert(results, entry)
 			end
 		end
 	end
@@ -1268,12 +1316,30 @@ function handlers.manage_tags(args)
 	return { instances = result }
 end
 
+local CLAUDE_WAYPOINT = "Claude: "
+
+-- Only undo steps Claude created, unless the caller explicitly forces it.
 function handlers.undo(args)
 	local steps = math.floor(argNumber(args, "steps", 1, 1, 50))
+	local force = args.force == true
+	local undone = {}
 	for _ = 1, steps do
+		local okCheck, canUndo, waypoint = pcall(ChangeHistoryService.GetCanUndo, ChangeHistoryService)
+		if not okCheck or not canUndo then
+			break
+		end
+		local isClaude = type(waypoint) == "string" and string.sub(waypoint, 1, #CLAUDE_WAYPOINT) == CLAUDE_WAYPOINT
+		if not isClaude and not force then
+			return {
+				undone = undone,
+				stopped = true,
+				reason = ("next undo step is '%s', which was not made by Claude; ask the user, then pass force=true if they agree"):format(tostring(waypoint)),
+			}
+		end
 		ChangeHistoryService:Undo()
+		table.insert(undone, tostring(waypoint))
 	end
-	return { undone = steps }
+	return { undone = undone }
 end
 
 function handlers.redo(args)
@@ -1592,6 +1658,258 @@ function handlers.raycast(args)
 		material = hit.Material.Name,
 		distance = hit.Distance,
 	}
+end
+
+---------------------------------------------------------------------------
+-- Remote analysis (client/server boundary)
+---------------------------------------------------------------------------
+
+local function escapePattern(text)
+	return (string.gsub(text, "[%(%)%.%%%+%-%*%?%[%]%^%$]", "%%%0"))
+end
+
+local function scriptSide(s)
+	if s:IsA("LocalScript") then
+		return "client"
+	elseif s:IsA("ModuleScript") then
+		return "module"
+	end
+	local ok, rc = readProperty(s, "RunContext")
+	if ok and rc ~= nil and rc.Name == "Client" then
+		return "client"
+	end
+	return "server"
+end
+
+local VALIDATION_HINTS = { "typeof%s*%(", "type%s*%(", "assert%s*%(", "tonumber%s*%(", "IsA%s*%(", "math%.clamp" }
+
+function handlers.analyze_remotes(args)
+	local root = resolve(argString(args, "root", true))
+	local remotes = {}
+	for _, service in game:GetChildren() do
+		local ok, descendants = pcall(service.GetDescendants, service)
+		if ok then
+			for _, d in descendants do
+				local isRemote = d:IsA("RemoteEvent") or d:IsA("RemoteFunction") or d:IsA("UnreliableRemoteEvent")
+				if isRemote and (root == game or d:IsDescendantOf(root)) then
+					table.insert(remotes, d)
+				end
+			end
+		end
+	end
+
+	local scripts = {}
+	forEachScript(game, function(s)
+		local ok, source = pcall(getSource, s)
+		if ok then
+			table.insert(scripts, { inst = s, source = source, side = scriptSide(s) })
+		end
+	end)
+
+	local report, issues = {}, 0
+	for _, remote in remotes do
+		local word = "%f[%w_]" .. escapePattern(remote.Name) .. "%f[^%w_]"
+		local entry = { path = pathOf(remote), className = remote.ClassName, firedBy = {}, handledBy = {}, warnings = {} }
+		local isFunction = remote:IsA("RemoteFunction")
+		for _, info in scripts do
+			if string.find(info.source, word) then
+				local src = info.source
+				local p = pathOf(info.inst)
+				local fires = string.find(src, isFunction and ":InvokeServer" or ":FireServer", 1, true)
+				local serverListens = string.find(src, isFunction and ".OnServerInvoke" or ".OnServerEvent", 1, true)
+				local clientListens = string.find(src, isFunction and ".OnClientInvoke" or ".OnClientEvent", 1, true)
+				local serverFires = string.find(src, ":FireClient", 1, true) or string.find(src, ":FireAllClients", 1, true)
+					or string.find(src, ":InvokeClient", 1, true)
+				if fires and info.side ~= "server" then
+					table.insert(entry.firedBy, { path = p, side = info.side, direction = "client->server" })
+				end
+				if serverFires and info.side ~= "client" then
+					table.insert(entry.firedBy, { path = p, side = info.side, direction = "server->client" })
+				end
+				if serverListens and info.side ~= "client" then
+					local validated = false
+					for _, hint in VALIDATION_HINTS do
+						if string.find(src, hint) then
+							validated = true
+							break
+						end
+					end
+					table.insert(entry.handledBy, { path = p, side = info.side, direction = "client->server", argumentChecksSeen = validated })
+					if not validated then
+						table.insert(entry.warnings, p .. " handles client input with no visible argument checks (typeof/type/assert/tonumber/IsA/clamp)")
+					end
+				end
+				if clientListens and info.side ~= "server" then
+					table.insert(entry.handledBy, { path = p, side = info.side, direction = "server->client" })
+				end
+			end
+		end
+		local clientToServerFired, serverHandled = false, false
+		for _, f in entry.firedBy do
+			if f.direction == "client->server" then
+				clientToServerFired = true
+			end
+		end
+		for _, h in entry.handledBy do
+			if h.direction == "client->server" then
+				serverHandled = true
+			end
+		end
+		if clientToServerFired and not serverHandled then
+			table.insert(entry.warnings, "fired by the client but no server handler found")
+		end
+		if serverHandled and not clientToServerFired then
+			table.insert(entry.warnings, "server listens but no client script fires it (dead remote, or fired from a module)")
+		end
+		if #entry.firedBy == 0 and #entry.handledBy == 0 then
+			table.insert(entry.warnings, "not referenced by any script")
+		end
+		issues += #entry.warnings
+		table.insert(report, entry)
+	end
+	return {
+		remotes = #report,
+		warnings = issues,
+		note = "Heuristic: matched by remote name in script source. Confirm by reading the scripts before acting.",
+		report = report,
+	}
+end
+
+---------------------------------------------------------------------------
+-- Snapshots: record a subtree, later diff it to catch regressions
+---------------------------------------------------------------------------
+
+local MAX_SNAPSHOT_INSTANCES = 20000
+local MAX_SNAPSHOTS = 5
+local snapshots, snapshotOrder = {}, {}
+
+local function hashString(text)
+	local h = 5381
+	for i = 1, #text do
+		h = (h * 33 + string.byte(text, i)) % 4294967296
+	end
+	return string.format("%08x", h)
+end
+
+local function captureInstance(inst)
+	local props = {}
+	for _, name in COMMON_PROPERTIES do
+		local ok, value = readProperty(inst, name)
+		if ok then
+			local okJson, json = pcall(HttpService.JSONEncode, HttpService, { v = encode(value) })
+			if okJson then
+				props[name] = json
+			end
+		end
+	end
+	for key, value in inst:GetAttributes() do
+		local okJson, json = pcall(HttpService.JSONEncode, HttpService, { v = encode(value) })
+		if okJson then
+			props["@" .. key] = json
+		end
+	end
+	local entry = { className = inst.ClassName, props = props }
+	if inst:IsA("LuaSourceContainer") then
+		local ok, source = pcall(getSource, inst)
+		if ok then
+			entry.sourceHash = hashString(source)
+			entry.sourceLines = countLines(source)
+		end
+	end
+	return entry
+end
+
+local function captureTree(root)
+	local map, count = {}, 0
+	local function visit(inst)
+		count += 1
+		if count > MAX_SNAPSHOT_INSTANCES then
+			error(("subtree has more than %d instances; snapshot a smaller root"):format(MAX_SNAPSHOT_INSTANCES), 0)
+		end
+		map[pathOf(inst)] = captureInstance(inst)
+		local ok, children = pcall(inst.GetChildren, inst)
+		if ok then
+			for _, c in children do
+				visit(c)
+			end
+		end
+	end
+	withPathCache(visit, root)
+	return map, count
+end
+
+function handlers.snapshot(args)
+	local rootPath = argString(args, "root", true) or "Workspace"
+	local root = resolve(rootPath)
+	if root == game then
+		error("snapshot a specific service or folder, not the whole game", 0)
+	end
+	local map, count = captureTree(root)
+	local id = argString(args, "name", true) or ("snap" .. tostring(#snapshotOrder + 1))
+	if snapshots[id] == nil then
+		table.insert(snapshotOrder, id)
+	end
+	snapshots[id] = { root = pathOf(root), map = map, count = count, takenAt = os.date("%H:%M:%S") }
+	while #snapshotOrder > MAX_SNAPSHOTS do
+		snapshots[table.remove(snapshotOrder, 1)] = nil
+	end
+	return { name = id, root = pathOf(root), instances = count, kept = snapshotOrder }
+end
+
+function handlers.diff_snapshot(args)
+	local id = argString(args, "name")
+	local snap = snapshots[id]
+	if snap == nil then
+		error(("no snapshot named '%s' (snapshots live in Studio memory and are lost when Studio closes or the plugin reloads)"):format(id), 0)
+	end
+	local limit = argNumber(args, "limit", 200, 1, 2000)
+	local current = captureTree(resolve(snap.root))
+	local added, removed, changed = {}, {}, {}
+	local counts = { added = 0, removed = 0, changed = 0 }
+
+	for path, now in current do
+		local before = snap.map[path]
+		if before == nil then
+			counts.added += 1
+			if #added < limit then
+				table.insert(added, { path = path, className = now.className })
+			end
+		else
+			local diffs = {}
+			if before.className ~= now.className then
+				table.insert(diffs, "ClassName")
+			end
+			for name, json in now.props do
+				if before.props[name] ~= json then
+					table.insert(diffs, name)
+				end
+			end
+			for name in before.props do
+				if now.props[name] == nil then
+					table.insert(diffs, name)
+				end
+			end
+			if before.sourceHash ~= now.sourceHash then
+				table.insert(diffs, ("Source (%s -> %s lines)"):format(tostring(before.sourceLines), tostring(now.sourceLines)))
+			end
+			if #diffs > 0 then
+				counts.changed += 1
+				if #changed < limit then
+					table.sort(diffs)
+					table.insert(changed, { path = path, changed = diffs })
+				end
+			end
+		end
+	end
+	for path, before in snap.map do
+		if current[path] == nil then
+			counts.removed += 1
+			if #removed < limit then
+				table.insert(removed, { path = path, className = before.className })
+			end
+		end
+	end
+	return { name = id, root = snap.root, takenAt = snap.takenAt, counts = counts, added = added, removed = removed, changed = changed }
 end
 
 local BATCH_BLOCKED = { batch = true, undo = true, redo = true, camera_path = true, camera_orbit = true }

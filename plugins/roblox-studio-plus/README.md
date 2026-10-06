@@ -12,12 +12,14 @@ Plugin para Claude Code que le da a Claude más control sobre Roblox Studio que 
 
 El MCP oficial de Roblox trae `run_code`, `insert_model`, `get_console_output`, `start_stop_play`, `run_script_in_play_mode` y `get_studio_mode`. Este plugin añade herramientas dedicadas en lugar de tener que escribir Luau para todo:
 
-- **Explorar:** `get_tree` (con propiedades opcionales por nodo), `find_instances` (por clase, nombre, patrón, tag o atributo), `get_properties`, `get_bounds`, `raycast`
+- **Explorar:** `get_tree` (con propiedades opcionales por nodo), `find_instances` (por clase, nombre, patrón, tag, atributo o **valor de propiedad**, p. ej. todas las Parts sin anclar), `get_properties`, `get_bounds`, `raycast`
+- **Cliente/servidor:** `analyze_remotes` muestra, para cada RemoteEvent/RemoteFunction, qué scripts lo disparan y cuáles lo escuchan, y avisa si un handler del servidor no valida lo que manda el cliente, si nadie lo escucha o si no se usa.
+- **Detectar regresiones:** `snapshot` guarda una foto de una zona antes de cambiarla y `diff_snapshot` dice exactamente qué se añadió, borró o cambió (propiedades, atributos y código).
 - **Nombres repetidos:** si dos hermanos se llaman igual, sus rutas llevan índice (`Workspace.Map.Tree[2]`), así cada uno se puede seleccionar sin ambigüedad.
 - **Editar con deshacer:** `set_properties`, `create_instance`, `create_tree` (una jerarquía entera de una vez: GUIs, modelos, carpetas de RemoteEvents), `insert_asset` (por ID), `clone_instance`, `reparent_instances`, `delete_instances`. Cada operación es un solo paso de Ctrl+Z y se revierte entera si algo falla.
 - **Scripts:** `open_script` (lo abre en el editor en una línea), `list_scripts`, `read_script` (con números de línea), `edit_script` (buscar y reemplazar exacto; devuelve las líneas cambiadas para comprobarlas), `write_script`, `search_scripts` (grep en todos los scripts)
 - **Atributos y tags:** `set_attributes`, `manage_tags`
-- **Studio:** `get_selection`, `set_selection`, `undo`, `redo`, `get_output`
+- **Studio:** `get_selection`, `set_selection`, `undo` (solo deshace pasos de Claude, nunca los tuyos sin permiso), `redo`, `get_output`
 - **Cámara para trailers:** `camera_get`, `camera_set` (encuadra una instancia), `camera_orbit` (gira alrededor de un modelo), `camera_path` (vuelo suave entre puntos clave, con cuenta atrás para empezar a grabar)
 - **Seguridad:** `audit_scripts` busca firmas típicas de backdoors de modelos gratuitos (`require(ID)`, `loadstring`, `getfenv`, webhooks de Discord, `PostAsync`, código ofuscado). `insert_asset` revisa los scripts del asset **antes** de meterlo y lo rechaza si encuentra algo grave.
 - **Varias operaciones juntas:** `batch` ejecuta hasta 50 herramientas como un solo Ctrl+Z; si una falla, se deshace todo.
@@ -68,6 +70,10 @@ Solo una sesión de Claude a la vez puede usar el puerto.
 - `delete_instances` no deja borrar servicios, Terrain ni la cámara.
 - Todos los argumentos se validan dos veces: en el servidor y otra vez en Studio.
 
+## Historial
+
+Ver [CHANGELOG.md](CHANGELOG.md).
+
 ## Actualizar
 
 Al actualizar el plugin de Claude Code, copia también el `RobloxStudioPlus.server.lua` nuevo en la carpeta de Plugins de Studio. Si las versiones no coinciden, `studio_status` lo avisa.
@@ -91,4 +97,7 @@ En un place de prueba, con el plugin conectado:
 5. `edit_script` en un script de prueba, y `open_script` para verlo en el editor.
 6. `run_luau` con `print(1) return workspace`: debe devolver la salida `1` y la ruta de Workspace.
 7. Activa **Read-only** y pide un `set_properties`: debe rechazarse y salir ⛔ en el panel **Activity**.
-8. `camera_orbit` alrededor de un modelo y `camera_path` con 3 puntos: comprueba que el movimiento es suave y que el ratón no lo interrumpe.
+8. Haz un cambio tú a mano y luego pide `undo`: debe pararse sin deshacer tu cambio.
+9. `snapshot` de una carpeta, cambia una Part con Claude y pide `diff_snapshot`: debe listar solo esa Part y esa propiedad.
+10. `analyze_remotes` en un place con RemoteEvents: revisa que los scripts que lo disparan y lo escuchan sean los correctos.
+11. `camera_orbit` alrededor de un modelo y `camera_path` con 3 puntos: comprueba que el movimiento es suave y que el ratón no lo interrumpe.

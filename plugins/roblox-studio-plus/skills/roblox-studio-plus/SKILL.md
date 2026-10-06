@@ -13,9 +13,10 @@ Call `studio_status`. If `readOnly` is true, the user has locked edits: inspect 
 
 ## Workflow: inspect → plan → change → verify
 
-1. **Inspect before touching anything.** `get_tree` (start at depth 1-2, drill down), `find_instances`, `list_scripts`, `search_scripts`, `read_script`, `get_properties`. Never assume a folder, RemoteEvent, module or property exists — confirm it.
-2. **Plan** what you will change and what you will not, and the risks (server/client boundary, other scripts that require the module, replication).
-3. **Change with the smallest tool that fits**:
+1. **Inspect before touching anything.** `get_tree` (start at depth 1-2, drill down), `find_instances` (with `where` to filter by property values, e.g. `{"Anchored": false}`), `list_scripts`, `search_scripts`, `read_script`, `get_properties`. For anything networked, run `analyze_remotes` to see the client/server boundary and which server handlers lack argument checks. Never assume a folder, RemoteEvent, module or property exists — confirm it.
+2. **Snapshot** the area you will touch: `snapshot` with a `root` and a `name`.
+3. **Plan** what you will change and what you will not, and the risks (server/client boundary, other scripts that require the module, replication).
+4. **Change with the smallest tool that fits**:
    - script text → `edit_script` (exact snippet replace; quote `oldText` from `read_script` output without the line-number prefix). It returns the edited lines with numbers — read them to confirm the change landed as intended. Use `write_script` only for new or fully rewritten scripts.
    - properties → `set_properties`; attributes → `set_attributes`; tags → `manage_tags`
    - structure → `create_instance`, `clone_instance`, `reparent_instances`, `delete_instances`
@@ -26,9 +27,9 @@ Call `studio_status`. If `readOnly` is true, the user has locked edits: inspect 
    - placement → `get_bounds` for sizes/top/bottom, `raycast` to find the ground
    - anything else → `run_luau` (still one undo step)
    - show the user the code you are talking about → `open_script` at the line
-4. **Verify**: re-read what you changed, `search_scripts` for other references to renamed things, `get_output` for errors, and use the official MCP's play-mode tools for a runtime check.
+5. **Verify**: `diff_snapshot` to see exactly what changed (anything you did not intend is a regression to fix or explain), re-read what you changed, `search_scripts` for other references to renamed things, `get_output` for errors, and use the official MCP's play-mode tools for a runtime check.
 
-The user can watch every call in the Studio Plus **Activity** panel, so keep calls purposeful. Every mutating tool is a single Studio undo step and is rolled back if any part fails. `undo`/`redo` step through Studio's history (including the user's own steps — only undo what you just did).
+The user can watch every call in the Studio Plus **Activity** panel, so keep calls purposeful. Every mutating tool is a single Studio undo step and is rolled back if any part fails. `undo` only undoes steps Claude made and stops at the user's own steps; pass `force` only after the user agrees.
 
 ## Paths
 
@@ -70,4 +71,5 @@ Roblox video ads are rejected for: footage of mechanics/UI not in the game, grap
 - After any free model enters the place (yours, the official MCP's `insert_model`, or the user's), run `audit_scripts` on it. Report findings as leads to review, not proof — legitimate code can use `require(id)` for official modules.
 - `delete_instances` refuses services, Terrain and the current camera. Still inspect first and list what you will delete.
 - `run_luau` runs with plugin permissions in the edit place. Do not use it to bypass the dedicated tools, make HTTP calls, or touch anything the user did not ask for.
+- `analyze_remotes` is a heuristic: it matches remote names in source. Read the handler before claiming a vulnerability, and fix missing validation on the server (type checks, ranges, cooldowns, ownership), never by trusting the client.
 - Validate gameplay logic server-side in the scripts you write; never trust client input for damage, ammo, cooldowns, team or permissions.
