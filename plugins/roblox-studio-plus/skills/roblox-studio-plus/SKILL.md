@@ -1,0 +1,63 @@
+---
+name: roblox-studio-plus
+description: Use when working inside a live Roblox Studio place - inspecting the Explorer tree, reading or editing scripts, changing properties/attributes/tags, bulk edits, undo, reading Output, or framing and flying the camera to record a trailer or clip. Covers the roblox-studio-plus MCP tools and how they combine with the official Roblox Studio MCP (run_code, insert_model, play mode).
+---
+
+# Roblox Studio Plus
+
+The `roblox-studio-plus` MCP server talks to Roblox Studio through a companion plugin. It adds structured, undoable tools that the official Roblox Studio MCP does not have. Use both: the official MCP for playtesting (`start_stop_play`, `run_script_in_play_mode`, `get_studio_mode`) and Creator Store inserts (`insert_model`); this one for everything below.
+
+## First call
+
+Call `studio_status`. If it says Studio is not connected, tell the user to open Studio → **Plugins** tab → **Studio Plus** → **Connect** (and to allow the localhost HTTP permission prompt). Do not fall back to guessing.
+
+## Workflow: inspect → plan → change → verify
+
+1. **Inspect before touching anything.** `get_tree` (start at depth 1-2, drill down), `find_instances`, `list_scripts`, `search_scripts`, `read_script`, `get_properties`. Never assume a folder, RemoteEvent, module or property exists — confirm it.
+2. **Plan** what you will change and what you will not, and the risks (server/client boundary, other scripts that require the module, replication).
+3. **Change with the smallest tool that fits**:
+   - script text → `edit_script` (exact snippet replace; quote `oldText` from `read_script` output without the line-number prefix). Use `write_script` only for new or fully rewritten scripts.
+   - properties → `set_properties`; attributes → `set_attributes`; tags → `manage_tags`
+   - structure → `create_instance`, `clone_instance`, `reparent_instances`, `delete_instances`
+   - anything else → `run_luau` (still one undo step)
+4. **Verify**: re-read what you changed, `search_scripts` for other references to renamed things, `get_output` for errors, and use the official MCP's play-mode tools for a runtime check.
+
+Every mutating tool is a single Studio undo step and is rolled back if any part fails. `undo`/`redo` step through Studio's history (including the user's own steps — only undo what you just did).
+
+## Paths
+
+- Dotted from a service: `Workspace.Map.SpawnLocation`, `ServerScriptService.Main`. Leading `game.` is optional.
+- If a name contains a dot use `/`: `ReplicatedStorage/Modules/Config.v2`.
+- Lookups return the **first** child with that name. `get_tree` flags duplicated sibling names with `dup: true` — rename or use `find_instances` + `set_selection` to confirm the right one before editing duplicates.
+
+## Values
+
+Plain JSON is coerced to the property's current type:
+
+| Type | Plain form | Tagged form |
+| --- | --- | --- |
+| Vector3 | `[x, y, z]` | `{"$type":"Vector3","value":[x,y,z]}` |
+| CFrame | `[x,y,z]` or 12 components | `{"$type":"CFrame","position":[..],"lookAt":[..]}` |
+| Color3 | `"#ff8800"`, `[1,0.5,0]`, or `[255,128,0]` | `{"$type":"Color3","value":[r,g,b]}` |
+| Enum | `"Neon"` | `{"$type":"EnumItem","enum":"Material","value":"Neon"}` |
+| UDim2 | `[xs, xo, ys, yo]` | `{"$type":"UDim2","value":[..]}` |
+| BrickColor | `"Bright red"` | `{"$type":"BrickColor","value":"Bright red"}` |
+| Instance ref | — | `{"$type":"Instance","path":"Workspace.Part"}` |
+
+For attributes (which have no current type when new) use the tagged form for anything that is not a string, number or boolean. `Parent` cannot be set with `set_properties`; use `reparent_instances`.
+
+## Recording trailers / clips
+
+`camera_set` (position + lookAt, or `target` to frame an instance) and `camera_path` (Catmull-Rom spline through keyframes, smooth easing, `startDelay` countdown printed in Output) fly the Studio camera so the user's screen recorder captures smooth shots. Workflow:
+
+1. Inspect the map (`get_tree`, `find_instances` for landmarks) and pick shots that show **real gameplay areas**.
+2. Preview each shot with `camera_set`; tweak `Lighting` with `set_properties` only to match the real in-game look.
+3. Ask the user to hide Studio UI / go full-screen and start recording, then run `camera_path` with a `startDelay`.
+
+Roblox video ads are rejected for: footage of mechanics/UI not in the game, graphics enhanced beyond what players see, real-life footage, voice-over or music with lyrics, and promotional or subjective overlay text ("best game", "#1", free Robux). Keep shots honest to actual gameplay and leave text to factual gameplay context.
+
+## Safety
+
+- `delete_instances` refuses services, Terrain and the current camera. Still inspect first and list what you will delete.
+- `run_luau` runs with plugin permissions in the edit place. Do not use it to bypass the dedicated tools, make HTTP calls, or touch anything the user did not ask for.
+- Validate gameplay logic server-side in the scripts you write; never trust client input for damage, ammo, cooldowns, team or permissions.
