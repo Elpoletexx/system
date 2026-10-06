@@ -73,6 +73,19 @@ assert(not ok and string.find(err, "path not found", 1, true), "missing index er
 ok, err = pcall(resolve, "Workspace.Nope")
 assert(not ok and string.find(err, "no child 'Nope'", 1, true), "missing child errors")
 
+-- The per-command cache must give the same answers as the uncached path.
+withPathCache(function()
+	for _, inst in { solo, a1, a2, a3, dotted } do
+		eq(resolve(pathOf(inst)), inst, "cached round trip " .. pathOf(inst))
+	end
+	eq(pathOf(a3), "Workspace.Map.Tree[3]", "cached index")
+end)
+local okErr = pcall(withPathCache, function()
+	error("boom", 0)
+end)
+assert(not okErr, "withPathCache propagates errors")
+assert(segmentCache == nil, "cache is cleared after the command")
+
 -- A real child literally named "Tree[2]" wins over the index syntax.
 local literal = new("Tree[2]", map)
 eq(resolve("Workspace.Map.Tree[2]"), literal, "literal bracket name preferred")

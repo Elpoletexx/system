@@ -26,7 +26,7 @@ const keyframe = {
 export const TOOLS = [
   {
     name: "studio_status",
-    description: "Check the bridge connection and report the open place, Studio mode and selection count. Call this first.",
+    description: "Check the bridge connection and report the open place, Studio mode, selection count and whether Studio Plus is in read-only mode (edits refused). Call this first.",
     inputSchema: { type: "object", properties: {} },
     local: true,
   },
@@ -70,11 +70,13 @@ export const TOOLS = [
   },
   {
     name: "set_properties",
+    mutating: true,
     description: "Set properties on one or more instances as a single undo step. If any assignment fails, the whole step is rolled back.",
     inputSchema: { type: "object", properties: { paths, properties: valueMap }, required: ["paths", "properties"] },
   },
   {
     name: "create_instance",
+    mutating: true,
     description: "Create an instance (properties are applied before parenting). Undoable.",
     inputSchema: {
       type: "object",
@@ -84,16 +86,19 @@ export const TOOLS = [
   },
   {
     name: "delete_instances",
+    mutating: true,
     description: "Destroy instances as a single undo step. Services, the DataModel, Terrain and the current camera are refused.",
     inputSchema: { type: "object", properties: { paths }, required: ["paths"] },
   },
   {
     name: "clone_instance",
+    mutating: true,
     description: "Clone an instance into a parent (defaults to the original parent). Undoable.",
     inputSchema: { type: "object", properties: { path, parent: path, name: { type: "string" } }, required: ["path"] },
   },
   {
     name: "reparent_instances",
+    mutating: true,
     description: "Move instances under a new parent. Undoable.",
     inputSchema: { type: "object", properties: { paths, parent: path }, required: ["paths", "parent"] },
   },
@@ -113,6 +118,7 @@ export const TOOLS = [
   },
   {
     name: "edit_script",
+    mutating: true,
     description: "Replace an exact text snippet in a script (like a code editor find/replace). Fails if the snippet is missing, or appears more than once without replaceAll. Undoable.",
     inputSchema: {
       type: "object",
@@ -122,6 +128,7 @@ export const TOOLS = [
   },
   {
     name: "write_script",
+    mutating: true,
     description: "Overwrite a script's full source. Prefer edit_script for partial changes. Undoable.",
     inputSchema: { type: "object", properties: { path, source: { type: "string" } }, required: ["path", "source"] },
   },
@@ -152,6 +159,7 @@ export const TOOLS = [
   },
   {
     name: "set_attributes",
+    mutating: true,
     description: "Set and/or remove attributes on instances as one undo step.",
     inputSchema: {
       type: "object",
@@ -161,6 +169,7 @@ export const TOOLS = [
   },
   {
     name: "manage_tags",
+    mutating: true,
     description: "Add and/or remove CollectionService tags on instances as one undo step.",
     inputSchema: {
       type: "object",
@@ -170,11 +179,13 @@ export const TOOLS = [
   },
   {
     name: "undo",
+    mutating: true,
     description: "Undo the last Studio change-history step(s).",
     inputSchema: { type: "object", properties: { steps: { type: "integer", minimum: 1, maximum: 50, default: 1 } } },
   },
   {
     name: "redo",
+    mutating: true,
     description: "Redo the last undone Studio change-history step(s).",
     inputSchema: { type: "object", properties: { steps: { type: "integer", minimum: 1, maximum: 50, default: 1 } } },
   },
@@ -233,6 +244,7 @@ export const TOOLS = [
   },
   {
     name: "create_tree",
+    mutating: true,
     description: "Build a whole instance hierarchy from a nested spec in one undo step (GUIs, models, folders of RemoteEvents...). Each node: {className, name?, properties?, attributes?, tags?, children?}. Max 2000 nodes; nothing is parented until every node succeeded.",
     inputSchema: {
       type: "object",
@@ -245,6 +257,7 @@ export const TOOLS = [
   },
   {
     name: "insert_asset",
+    mutating: true,
     description: "Insert an asset by ID with InsertService:LoadAsset. Its scripts are audited BEFORE insertion; assets with high-severity backdoor patterns are refused unless allowSuspicious. Lists every script it brings in. Undoable.",
     inputSchema: {
       type: "object",
@@ -292,6 +305,7 @@ export const TOOLS = [
   },
   {
     name: "terrain_fill",
+    mutating: true,
     description: "Fill terrain with a block, ball or cylinder of a material (use material \"Air\" to carve/clear). Undoable.",
     inputSchema: {
       type: "object",
@@ -338,6 +352,7 @@ export const TOOLS = [
   },
   {
     name: "run_luau",
+    mutating: true,
     description: "Run Luau in the edit DataModel with plugin permissions. Returns printed output and the chunk's return values (serialized). Changes are wrapped in one undo step.",
     inputSchema: { type: "object", properties: { code: { type: "string", minLength: 1 } }, required: ["code"] },
   },

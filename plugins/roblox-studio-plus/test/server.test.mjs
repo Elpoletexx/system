@@ -149,7 +149,10 @@ test("stdio server answers initialize and tools/list", async () => {
   assert.equal(lines[0].result.protocolVersion, "2025-06-18");
   assert.equal(lines[0].result.serverInfo.name, "roblox-studio-plus");
   assert.equal(lines[1].result.tools.length, TOOLS.length);
-  assert.ok(lines[1].result.tools.every((t) => !("local" in t) && !("timeoutMs" in t)));
+  assert.ok(lines[1].result.tools.every((t) => !("local" in t) && !("timeoutMs" in t) && !("mutating" in t)));
+  const del = lines[1].result.tools.find((t) => t.name === "delete_instances");
+  assert.equal(del.annotations.readOnlyHint, false);
+  assert.equal(lines[1].result.tools.find((t) => t.name === "get_tree").annotations.readOnlyHint, true);
 });
 
 test("every MCP tool has a Studio handler and vice versa", async () => {
@@ -223,4 +226,13 @@ test("a second Studio window cannot steal commands from the connected one", asyn
   assert.equal(bridge.activeSession, "studio-B");
   await bridge.close();
   await takeover.catch(() => {});
+});
+
+test("mutating flags match the Studio plugin's read-only gate", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const lua = await readFile(new URL("../studio-plugin/RobloxStudioPlus.server.lua", import.meta.url), "utf8");
+  const block = lua.match(/local MUTATING = \{([\s\S]*?)\n\}/)[1];
+  const luaMutating = new Set([...block.matchAll(/(\w+) = true/g)].map((m) => m[1]));
+  const jsMutating = new Set(TOOLS.filter((t) => t.mutating).map((t) => t.name));
+  assert.deepEqual([...luaMutating].sort(), [...jsMutating].sort());
 });

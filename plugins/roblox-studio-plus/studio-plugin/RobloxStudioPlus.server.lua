@@ -22,7 +22,7 @@ if not RunService:IsEdit() then
 	return
 end
 
-local VERSION = "0.5.0"
+local VERSION = "0.6.0"
 local PORT = 44877 -- must match ROBLOX_STUDIO_PLUS_PORT on the MCP server (default 44877)
 local BASE_URL = "http://localhost:" .. PORT
 local SETTING_ENABLED = "RobloxStudioPlus_Enabled"
@@ -175,35 +175,54 @@ local function resolve(path)
 	return node
 end
 
+-- Per-command cache: parent -> { [child] = segment }. Without it, listing thousands of
+-- same-folder results rescans the folder once per result.
+local segmentCache = nil
+
+local function segmentsFor(parent)
+	local names, counts = {}, {}
+	local children = parent:GetChildren()
+	for _, c in children do
+		counts[c.Name] = (counts[c.Name] or 0) + 1
+	end
+	local seen = {}
+	for _, c in children do
+		if counts[c.Name] > 1 then
+			seen[c.Name] = (seen[c.Name] or 0) + 1
+			names[c] = ("%s[%d]"):format(c.Name, seen[c.Name])
+		else
+			names[c] = c.Name
+		end
+	end
+	return names
+end
+
 -- Name of `inst` as a path segment, with an index suffix when siblings share its name.
 local function segmentOf(inst)
 	local parent = inst.Parent
 	if parent == nil then
 		return inst.Name
 	end
-	local first = parent:FindFirstChild(inst.Name)
-	local index, total = 0, 0
-	if first == inst then
-		-- Fast path: still need to know whether the name is shared.
-		for _, c in parent:GetChildren() do
-			if c.Name == inst.Name then
-				total += 1
-				if total > 1 then
-					break
-				end
-			end
+	if segmentCache then
+		local names = segmentCache[parent]
+		if names == nil then
+			names = segmentsFor(parent)
+			segmentCache[parent] = names
 		end
-		return total > 1 and (inst.Name .. "[1]") or inst.Name
+		return names[inst] or inst.Name
 	end
-	for _, c in parent:GetChildren() do
-		if c.Name == inst.Name then
-			index += 1
-			if c == inst then
-				break
-			end
-		end
+	return segmentsFor(parent)[inst] or inst.Name
+end
+
+local function withPathCache(fn, ...)
+	local previous = segmentCache
+	segmentCache = setmetatable({}, { __mode = "k" })
+	local results = table.pack(pcall(fn, ...))
+	segmentCache = previous
+	if not results[1] then
+		error(results[2], 0)
 	end
-	return ("%s[%d]"):format(inst.Name, index)
+	return table.unpack(results, 2, results.n)
 end
 
 local function pathOf(inst)
@@ -773,11 +792,29 @@ end
 -- Tool handlers
 ---------------------------------------------------------------------------
 
+local SETTING_READ_ONLY = "RobloxStudioPlus_ReadOnly"
+local readOnly = plugin:GetSetting(SETTING_READ_ONLY) == true
+
+-- Tools that change the place. Read-only mode (toolbar) refuses them, including inside batch.
+local MUTATING = {
+	set_properties = true, create_instance = true, create_tree = true, delete_instances = true,
+	clone_instance = true, reparent_instances = true, edit_script = true, write_script = true,
+	set_attributes = true, manage_tags = true, undo = true, redo = true, insert_asset = true,
+	terrain_fill = true, run_luau = true,
+}
+
+local function assertWritable(tool)
+	if readOnly and MUTATING[tool] then
+		error(("'%s' is blocked: Studio Plus is in read-only mode (toggle 'Read-only' in the Plugins tab to allow edits)"):format(tool), 0)
+	end
+end
+
 local handlers = {}
 
 function handlers.studio_status()
 	return {
 		pluginVersion = VERSION,
+		readOnly = readOnly,
 		placeName = game.Name,
 		placeId = game.PlaceId,
 		gameId = game.GameId,
@@ -1105,7 +1142,20 @@ function handlers.edit_script(args)
 	withUndo("edit " .. inst.Name, function()
 		setSource(inst, updated)
 	end)
-	return { path = pathOf(inst), replacements = replaced, lineCount = countLines(updated) }
+	-- Show the edited region (first replacement, 2 lines of context) so the change can be checked.
+	local firstAt = string.find(source, oldText, 1, true)
+	local firstLine = countLines(string.sub(source, 1, firstAt))
+	local lines = string.split(updated, "\n")
+	local from = math.max(1, firstLine - 2)
+	local to = math.min(#lines, firstLine + countLines(newText) + 1)
+	return {
+		path = pathOf(inst),
+		replacements = replaced,
+		lineCount = #lines,
+		startLine = from,
+		endLine = to,
+		source = table.concat(lines, "\n", from, to),
+	}
 end
 
 function handlers.write_script(args)
@@ -1558,6 +1608,7 @@ function handlers.batch(args)
 		if BATCH_BLOCKED[step.tool] then
 			error(("step %d: %s cannot run inside batch"):format(i, step.tool), 0)
 		end
+		assertWritable(step.tool)
 	end
 	local results = {}
 	withUndo("batch", function()
@@ -1646,6 +1697,130 @@ local button = toolbar:CreateButton(
 )
 button.ClickableWhenViewportHidden = true
 
+local readOnlyButton = toolbar:CreateButton(
+	"Read-only",
+	"When on, Claude can inspect the place but every tool that changes it is refused",
+	""
+)
+readOnlyButton.ClickableWhenViewportHidden = true
+
+local activityButton = toolbar:CreateButton("Activity", "Show what Claude is doing in this place", "")
+activityButton.ClickableWhenViewportHidden = true
+
+---------------------------------------------------------------------------
+-- Activity panel: a live log of every command Claude runs
+---------------------------------------------------------------------------
+
+local ACTIVITY_LIMIT = 100
+local widget = plugin:CreateDockWidgetPluginGui(
+	"RobloxStudioPlusActivity",
+	DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Right, false, false, 340, 280, 220, 140)
+)
+widget.Title = "Studio Plus — Claude activity"
+widget.Name = "RobloxStudioPlusActivity"
+
+local function themeColor(styleColor)
+	local ok, color = pcall(function()
+		return settings().Studio.Theme:GetColor(styleColor)
+	end)
+	return ok and color or nil
+end
+
+local root = Instance.new("Frame")
+root.Size = UDim2.fromScale(1, 1)
+root.BorderSizePixel = 0
+root.Parent = widget
+
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1, -8, 0, 22)
+statusLabel.Position = UDim2.fromOffset(4, 2)
+statusLabel.BackgroundTransparency = 1
+statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+statusLabel.Font = Enum.Font.SourceSansBold
+statusLabel.TextSize = 15
+statusLabel.Parent = root
+
+local logFrame = Instance.new("ScrollingFrame")
+logFrame.Size = UDim2.new(1, 0, 1, -26)
+logFrame.Position = UDim2.fromOffset(0, 26)
+logFrame.BackgroundTransparency = 1
+logFrame.BorderSizePixel = 0
+logFrame.ScrollBarThickness = 6
+logFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+logFrame.CanvasSize = UDim2.new()
+logFrame.Parent = root
+
+local logLayout = Instance.new("UIListLayout")
+logLayout.SortOrder = Enum.SortOrder.LayoutOrder
+logLayout.Parent = logFrame
+
+local function applyTheme()
+	local bg = themeColor(Enum.StudioStyleGuideColor.MainBackground)
+	local text = themeColor(Enum.StudioStyleGuideColor.MainText)
+	if bg then
+		root.BackgroundColor3 = bg
+	end
+	if text then
+		statusLabel.TextColor3 = text
+		for _, entry in logFrame:GetChildren() do
+			if entry:IsA("TextLabel") and entry:GetAttribute("Kind") == "ok" then
+				entry.TextColor3 = text
+			end
+		end
+	end
+end
+
+local activityOrder = 0
+local function logActivity(kind, message)
+	activityOrder += 1
+	local entry = Instance.new("TextLabel")
+	entry.LayoutOrder = -activityOrder -- newest first
+	entry.Size = UDim2.new(1, -10, 0, 0)
+	entry.AutomaticSize = Enum.AutomaticSize.Y
+	entry.BackgroundTransparency = 1
+	entry.TextWrapped = true
+	entry.TextXAlignment = Enum.TextXAlignment.Left
+	entry.Font = Enum.Font.Code
+	entry.TextSize = 13
+	entry.Text = os.date("%H:%M:%S") .. "  " .. message
+	entry:SetAttribute("Kind", kind)
+	if kind == "error" then
+		entry.TextColor3 = themeColor(Enum.StudioStyleGuideColor.ErrorText) or Color3.fromRGB(230, 80, 80)
+	elseif kind == "blocked" then
+		entry.TextColor3 = themeColor(Enum.StudioStyleGuideColor.WarningText) or Color3.fromRGB(230, 170, 60)
+	else
+		entry.TextColor3 = themeColor(Enum.StudioStyleGuideColor.MainText) or Color3.new(1, 1, 1)
+	end
+	entry.Parent = logFrame
+	local entries = {}
+	for _, child in logFrame:GetChildren() do
+		if child:IsA("TextLabel") then
+			table.insert(entries, child)
+		end
+	end
+	if #entries > ACTIVITY_LIMIT then
+		table.sort(entries, function(a, b)
+			return a.LayoutOrder > b.LayoutOrder
+		end)
+		entries[1]:Destroy() -- oldest has the highest LayoutOrder
+	end
+end
+
+-- Short human description of a command's target for the log.
+local function describeArgs(args)
+	if type(args) ~= "table" then
+		return ""
+	end
+	local target = args.path or args.root or args.parent or args.target or args.query or args.className
+	if target == nil and type(args.paths) == "table" then
+		target = tostring(args.paths[1]) .. (#args.paths > 1 and (" +" .. (#args.paths - 1)) or "")
+	end
+	if target == nil and type(args.steps) == "table" then
+		target = #args.steps .. " steps"
+	end
+	return target and ("  " .. string.sub(tostring(target), 1, 80)) or ""
+end
+
 local function request(method, path, body)
 	return HttpService:RequestAsync({
 		Url = BASE_URL .. path,
@@ -1660,15 +1835,30 @@ local function request(method, path, body)
 end
 
 local function runCommand(command)
-	local handler = type(command.tool) == "string" and handlers[command.tool] or nil
+	local tool = type(command.tool) == "string" and command.tool or "?"
+	local handler = handlers[tool]
 	if handler == nil then
-		return { id = command.id, ok = false, error = "unknown tool: " .. tostring(command.tool) }
+		return { id = command.id, ok = false, error = "unknown tool: " .. tool }
 	end
 	local args = type(command.args) == "table" and command.args or {}
-	local ok, result = pcall(handler, args)
+	local label = tool .. describeArgs(args)
+	local writable, blockedError = pcall(assertWritable, tool)
+	if not writable then
+		logActivity("blocked", "⛔ " .. label)
+		return { id = command.id, ok = false, error = tostring(blockedError) }
+	end
+	local ok, result
+	if MUTATING[tool] or tool == "batch" then
+		ok, result = pcall(handler, args)
+	else
+		-- Read-only tools can safely cache sibling indexes for the whole command.
+		ok, result = pcall(withPathCache, handler, args)
+	end
 	if not ok then
+		logActivity("error", "✗ " .. label .. " — " .. string.sub(tostring(result), 1, 160))
 		return { id = command.id, ok = false, error = tostring(result) }
 	end
+	logActivity("ok", (MUTATING[tool] and "✎ " or "· ") .. label)
 	return { id = command.id, ok = true, result = result }
 end
 
@@ -1683,6 +1873,19 @@ local function postResult(message)
 	end
 end
 
+local currentState = "off"
+local function setStatus(newState)
+	currentState = newState or currentState
+	local labels = {
+		off = "○ Disconnected",
+		starting = "… Connecting",
+		connected = "● Connected to Claude",
+		unreachable = "○ Waiting for Claude Code",
+		busy = "○ Another Studio window is connected",
+	}
+	statusLabel.Text = (labels[currentState] or currentState) .. (readOnly and "  ·  READ-ONLY" or "")
+end
+
 local function bridgeLoop()
 	if loopRunning then
 		return
@@ -1695,6 +1898,7 @@ local function bridgeLoop()
 			return
 		end
 		state = newState
+		setStatus(newState)
 		if newState == "connected" then
 			print("[Studio Plus] Connected to Claude (" .. game.Name .. ").")
 		elseif newState == "unreachable" then
@@ -1737,12 +1941,40 @@ local function setEnabled(value)
 	plugin:SetSetting(SETTING_ENABLED, value)
 	button:SetActive(value)
 	if value then
-		print("[Studio Plus] Bridge enabled — Claude can now read and edit this place.")
+		print(readOnly and "[Studio Plus] Bridge enabled (read-only) — Claude can inspect but not change this place."
+			or "[Studio Plus] Bridge enabled — Claude can now read and edit this place.")
+		setStatus("starting")
 		task.spawn(bridgeLoop)
 	else
 		print("[Studio Plus] Bridge disabled.")
+		setStatus("off")
 	end
 end
+
+local function setReadOnly(value)
+	readOnly = value
+	plugin:SetSetting(SETTING_READ_ONLY, value)
+	readOnlyButton:SetActive(value)
+	print(value and "[Studio Plus] Read-only ON: Claude cannot change this place." or "[Studio Plus] Read-only OFF: Claude can edit this place.")
+	logActivity("blocked", value and "Read-only mode ON" or "Read-only mode OFF")
+	setStatus()
+end
+
+readOnlyButton.Click:Connect(function()
+	setReadOnly(not readOnly)
+end)
+
+activityButton.Click:Connect(function()
+	widget.Enabled = not widget.Enabled
+end)
+widget:GetPropertyChangedSignal("Enabled"):Connect(function()
+	activityButton:SetActive(widget.Enabled)
+end)
+
+local themeConnection = settings().Studio.ThemeChanged:Connect(applyTheme)
+applyTheme()
+readOnlyButton:SetActive(readOnly)
+activityButton:SetActive(widget.Enabled)
 
 button.Click:Connect(function()
 	setEnabled(not enabled)
@@ -1751,9 +1983,11 @@ end)
 plugin.Unloading:Connect(function()
 	unloading = true
 	outputConnection:Disconnect()
+	themeConnection:Disconnect()
 end)
 
 button:SetActive(enabled)
+setStatus(enabled and "starting" or "off")
 if enabled then
 	task.spawn(bridgeLoop)
 end

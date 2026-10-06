@@ -2,7 +2,7 @@
 
 import { TOOLS, TOOL_BY_NAME, BATCH_BLOCKED } from "./tools.mjs";
 
-export const SERVER_INFO = { name: "roblox-studio-plus", version: "0.5.0" };
+export const SERVER_INFO = { name: "roblox-studio-plus", version: "0.6.0" };
 const DEFAULT_TIMEOUT_MS = 60_000;
 const SUPPORTED_PROTOCOLS = ["2025-06-18", "2025-03-26", "2024-11-05"];
 
@@ -111,7 +111,12 @@ export function createServer({ bridge, write }) {
         return isNotification ? undefined : reply(id, {});
       case "tools/list":
         return reply(id, {
-          tools: TOOLS.map(({ name, description, inputSchema }) => ({ name, description, inputSchema })),
+          tools: TOOLS.map(({ name, description, inputSchema, mutating }) => ({
+            name,
+            description,
+            inputSchema,
+            annotations: mutating ? { readOnlyHint: false, destructiveHint: true } : { readOnlyHint: true },
+          })),
         });
       case "tools/call":
         return reply(id, await callTool(params?.name, params?.arguments));
