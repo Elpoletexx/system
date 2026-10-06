@@ -15,7 +15,7 @@ El MCP oficial de Roblox trae `run_code`, `insert_model`, `get_console_output`, 
 - **Explorar:** `get_tree` (con propiedades opcionales por nodo), `find_instances` (por clase, nombre, patrón, tag o atributo), `get_properties`, `get_bounds`, `raycast`
 - **Nombres repetidos:** si dos hermanos se llaman igual, sus rutas llevan índice (`Workspace.Map.Tree[2]`), así cada uno se puede seleccionar sin ambigüedad.
 - **Editar con deshacer:** `set_properties`, `create_instance`, `create_tree` (una jerarquía entera de una vez: GUIs, modelos, carpetas de RemoteEvents), `insert_asset` (por ID), `clone_instance`, `reparent_instances`, `delete_instances`. Cada operación es un solo paso de Ctrl+Z y se revierte entera si algo falla.
-- **Scripts:** `open_script` (lo abre en el editor en una línea), `list_scripts`, `read_script` (con números de línea), `edit_script` (buscar y reemplazar exacto), `write_script`, `search_scripts` (grep en todos los scripts)
+- **Scripts:** `open_script` (lo abre en el editor en una línea), `list_scripts`, `read_script` (con números de línea), `edit_script` (buscar y reemplazar exacto; devuelve las líneas cambiadas para comprobarlas), `write_script`, `search_scripts` (grep en todos los scripts)
 - **Atributos y tags:** `set_attributes`, `manage_tags`
 - **Studio:** `get_selection`, `set_selection`, `undo`, `redo`, `get_output`
 - **Cámara para trailers:** `camera_get`, `camera_set` (encuadra una instancia), `camera_orbit` (gira alrededor de un modelo), `camera_path` (vuelo suave entre puntos clave, con cuenta atrás para empezar a grabar)
@@ -44,6 +44,11 @@ Los dos MCP pueden estar instalados a la vez (usan puertos distintos).
 4. En Claude, pide algo como "comprueba la conexión con Studio". Claude llamará a `studio_status`.
 
 El botón **Connect** queda recordado. Púlsalo otra vez para desconectar.
+
+**Botones de la barra Studio Plus:**
+- **Connect**: conecta o desconecta Studio de Claude.
+- **Read-only**: Claude puede mirar el place pero cualquier cambio se rechaza. Úsalo mientras Claude inspecciona, y apágalo cuando apruebes el plan.
+- **Activity**: abre un panel con lo que Claude va haciendo en tiempo real (✎ cambio, · lectura, ✗ error, ⛔ bloqueado por solo lectura).
 
 ## Puerto
 
@@ -85,4 +90,5 @@ En un place de prueba, con el plugin conectado:
 4. `create_tree` con una ScreenGui > Frame > TextButton; Ctrl+Z debe quitar todo junto.
 5. `edit_script` en un script de prueba, y `open_script` para verlo en el editor.
 6. `run_luau` con `print(1) return workspace`: debe devolver la salida `1` y la ruta de Workspace.
-7. `camera_orbit` alrededor de un modelo y `camera_path` con 3 puntos: comprueba que el movimiento es suave y que el ratón no lo interrumpe.
+7. Activa **Read-only** y pide un `set_properties`: debe rechazarse y salir ⛔ en el panel **Activity**.
+8. `camera_orbit` alrededor de un modelo y `camera_path` con 3 puntos: comprueba que el movimiento es suave y que el ratón no lo interrumpe.
