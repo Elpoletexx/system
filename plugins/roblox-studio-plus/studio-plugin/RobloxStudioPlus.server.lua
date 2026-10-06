@@ -22,7 +22,7 @@ if not RunService:IsEdit() then
 	return
 end
 
-local VERSION = "0.1.0"
+local VERSION = "0.2.0"
 local PORT = 44877 -- must match ROBLOX_STUDIO_PLUS_PORT on the MCP server (default 44877)
 local BASE_URL = "http://localhost:" .. PORT
 local SETTING_ENABLED = "RobloxStudioPlus_Enabled"
@@ -118,6 +118,32 @@ end
 -- Paths
 ---------------------------------------------------------------------------
 
+-- Duplicate sibling names are addressed as "Name[2]" (1-based, in GetChildren order).
+local function findChild(node, name)
+	local child = node:FindFirstChild(name)
+	if child == nil and node == game then
+		local ok, service = pcall(game.FindService, game, name)
+		child = ok and service or nil
+	end
+	if child ~= nil then
+		return child
+	end
+	local base, index = string.match(name, "^(.*)%[(%d+)%]$")
+	if base == nil then
+		return nil
+	end
+	local wanted, seen = tonumber(index), 0
+	for _, c in node:GetChildren() do
+		if c.Name == base then
+			seen += 1
+			if seen == wanted then
+				return c
+			end
+		end
+	end
+	return nil
+end
+
 local function resolve(path)
 	if path == nil or path == "" or path == "game" then
 		return game
@@ -129,11 +155,7 @@ local function resolve(path)
 	for i = first, #parts do
 		local name = parts[i]
 		if name ~= "" then
-			local child = node:FindFirstChild(name)
-			if child == nil and node == game then
-				local ok, service = pcall(game.FindService, game, name)
-				child = ok and service or nil
-			end
+			local child = findChild(node, name)
 			if child == nil then
 				error(("path not found: '%s' (no child '%s' under %s)"):format(path, name, node:GetFullName()), 0)
 			end
@@ -141,6 +163,37 @@ local function resolve(path)
 		end
 	end
 	return node
+end
+
+-- Name of `inst` as a path segment, with an index suffix when siblings share its name.
+local function segmentOf(inst)
+	local parent = inst.Parent
+	if parent == nil then
+		return inst.Name
+	end
+	local first = parent:FindFirstChild(inst.Name)
+	local index, total = 0, 0
+	if first == inst then
+		-- Fast path: still need to know whether the name is shared.
+		for _, c in parent:GetChildren() do
+			if c.Name == inst.Name then
+				total += 1
+				if total > 1 then
+					break
+				end
+			end
+		end
+		return total > 1 and (inst.Name .. "[1]") or inst.Name
+	end
+	for _, c in parent:GetChildren() do
+		if c.Name == inst.Name then
+			index += 1
+			if c == inst then
+				break
+			end
+		end
+	end
+	return ("%s[%d]"):format(inst.Name, index)
 end
 
 local function pathOf(inst)
@@ -151,7 +204,7 @@ local function pathOf(inst)
 	local useSlash = false
 	local node = inst
 	while node ~= nil and node ~= game do
-		table.insert(names, 1, node.Name)
+		table.insert(names, 1, segmentOf(node))
 		if string.find(node.Name, ".", 1, true) then
 			useSlash = true
 		end
@@ -636,11 +689,21 @@ function handlers.get_tree(args)
 	local root = resolve(argString(args, "path", true))
 	local maxDepth = argNumber(args, "depth", 2, 0, 10)
 	local maxChildren = argNumber(args, "maxChildren", 100, 1, 1000)
+	local propNames = argStringList(args, "properties", true)
 
 	local function node(inst, depth)
 		local ok, children = pcall(inst.GetChildren, inst)
 		children = ok and children or {}
 		local entry = { name = inst.Name, className = inst.ClassName, path = pathOf(inst), childCount = #children }
+		if #propNames > 0 then
+			entry.properties = {}
+			for _, n in propNames do
+				local okProp, value = readProperty(inst, n)
+				if okProp then
+					entry.properties[n] = encode(value)
+				end
+			end
+		end
 		if depth < maxDepth and #children > 0 then
 			local seen = {}
 			for _, c in children do
@@ -1078,11 +1141,7 @@ function handlers.camera_set(args)
 	return handlers.camera_get()
 end
 
-function handlers.camera_path(args)
-	local duration = argNumber(args, "duration", 8, 0.5, 120)
-	local startDelay = argNumber(args, "startDelay", 3, 0, 30)
-	local easing = args.easing == "linear" and "linear" or "smooth"
-	local frames = buildKeyframes(args.keyframes, duration)
+local function playFrames(frames, easing, startDelay)
 	local total = frames[#frames].time
 	local camera = workspace.CurrentCamera
 	local originalFov = camera.FieldOfView
@@ -1102,7 +1161,7 @@ function handlers.camera_path(args)
 
 	apply(0)
 	if startDelay > 0 then
-		print(("[Studio Plus] Camera path starts in %.1fs — start recording now."):format(startDelay))
+		print(("[Studio Plus] Camera move starts in %.1fs — start recording now."):format(startDelay))
 		task.wait(startDelay)
 	end
 	local start = os.clock()
@@ -1118,6 +1177,177 @@ function handlers.camera_path(args)
 		camera.FieldOfView = originalFov
 	end
 	return { keyframes = #frames, seconds = total, finalCamera = handlers.camera_get() }
+end
+
+function handlers.camera_path(args)
+	local duration = argNumber(args, "duration", 8, 0.5, 120)
+	local startDelay = argNumber(args, "startDelay", 3, 0, 30)
+	local easing = args.easing == "linear" and "linear" or "smooth"
+	return playFrames(buildKeyframes(args.keyframes, duration), easing, startDelay)
+end
+
+function handlers.camera_orbit(args)
+	local cf, size = boundingBox(resolve(argString(args, "target")))
+	local center = cf.Position
+	local radius = argNumber(args, "radius", math.max(size.Magnitude * 1.2, 10), 1)
+	local height = argNumber(args, "height", size.Y * 0.5 + radius * 0.3)
+	local degrees = argNumber(args, "degrees", 360, -1080, 1080)
+	local duration = argNumber(args, "duration", 10, 0.5, 120)
+	local startDelay = argNumber(args, "startDelay", 3, 0, 30)
+	local easing = args.easing == "smooth" and "smooth" or "linear"
+	local fov = args.fov ~= nil and argNumber(args, "fov", 70, 1, 120) or nil
+	if degrees == 0 then
+		error("degrees must not be 0", 0)
+	end
+
+	-- Start from the camera's current bearing so the move begins where the user is looking from.
+	local offset = workspace.CurrentCamera.CFrame.Position - center
+	local startAngle = math.atan2(offset.Z, offset.X)
+	local steps = math.max(4, math.ceil(math.abs(degrees) / 30))
+	local frames = {}
+	for i = 0, steps do
+		local angle = startAngle + math.rad(degrees) * i / steps
+		table.insert(frames, {
+			pos = center + Vector3.new(math.cos(angle) * radius, height, math.sin(angle) * radius),
+			look = center,
+			fov = fov,
+			time = duration * i / steps,
+		})
+	end
+	return playFrames(frames, easing, startDelay)
+end
+
+local MAX_TREE_NODES = 2000
+
+function handlers.create_tree(args)
+	local parent = resolve(argString(args, "parent"))
+	local spec = argMap(args, "tree")
+	local count = 0
+
+	local function build(node, where)
+		if type(node) ~= "table" or type(node.className) ~= "string" then
+			error(("%s: every node needs a string className"):format(where), 0)
+		end
+		count += 1
+		if count > MAX_TREE_NODES then
+			error(("tree is larger than %d nodes"):format(MAX_TREE_NODES), 0)
+		end
+		local ok, inst = pcall(Instance.new, node.className)
+		if not ok then
+			error(("%s: cannot create '%s': %s"):format(where, node.className, tostring(inst)), 0)
+		end
+		if node.name ~= nil then
+			if type(node.name) ~= "string" then
+				error(where .. ": name must be a string", 0)
+			end
+			inst.Name = node.name
+		end
+		local label = where .. "/" .. inst.Name
+		if node.properties ~= nil then
+			if type(node.properties) ~= "table" then
+				error(label .. ": properties must be an object", 0)
+			end
+			applyProperties(inst, node.properties)
+		end
+		if type(node.attributes) == "table" then
+			for k, v in node.attributes do
+				inst:SetAttribute(k, decode(v, nil))
+			end
+		end
+		if type(node.tags) == "table" then
+			for _, tag in node.tags do
+				inst:AddTag(tag)
+			end
+		end
+		if node.children ~= nil then
+			if type(node.children) ~= "table" then
+				error(label .. ": children must be a list", 0)
+			end
+			for _, child in node.children do
+				build(child, label).Parent = inst
+			end
+		end
+		return inst
+	end
+
+	local root = withUndo("create tree", function()
+		local built = build(spec, pathOf(parent))
+		built.Parent = parent
+		return built
+	end)
+	return { path = pathOf(root), className = root.ClassName, instancesCreated = count }
+end
+
+function handlers.insert_asset(args)
+	local assetId = argNumber(args, "assetId")
+	if assetId == nil or assetId <= 0 or assetId % 1 ~= 0 then
+		error("assetId must be a positive integer", 0)
+	end
+	local parent = resolve(argString(args, "parent", true) or "Workspace")
+	local InsertService = game:GetService("InsertService")
+	local ok, container = pcall(InsertService.LoadAsset, InsertService, assetId)
+	if not ok then
+		error(("could not load asset %d: %s"):format(assetId, tostring(container)), 0)
+	end
+	local inserted = {}
+	withUndo("insert asset " .. assetId, function()
+		for _, child in container:GetChildren() do
+			child.Parent = parent
+			table.insert(inserted, { path = pathOf(child), className = child.ClassName })
+		end
+	end)
+	container:Destroy()
+	return { assetId = assetId, inserted = inserted }
+end
+
+function handlers.open_script(args)
+	local inst = resolve(argString(args, "path"))
+	if not inst:IsA("LuaSourceContainer") then
+		error(pathOf(inst) .. " is not a script", 0)
+	end
+	local line = math.floor(argNumber(args, "line", 1, 1))
+	plugin:OpenScript(inst, line)
+	return { opened = pathOf(inst), line = line }
+end
+
+function handlers.get_bounds(args)
+	local out = {}
+	for _, inst in resolveAll(argStringList(args, "paths")) do
+		local cf, size = boundingBox(inst)
+		table.insert(out, {
+			path = pathOf(inst),
+			center = { cf.X, cf.Y, cf.Z },
+			size = { size.X, size.Y, size.Z },
+			bottomY = cf.Y - size.Y / 2,
+			topY = cf.Y + size.Y / 2,
+			cframe = encode(cf),
+		})
+	end
+	return { bounds = out }
+end
+
+function handlers.raycast(args)
+	local origin = Vector3.new(numbers(args.origin, 3, "origin"))
+	local direction = args.direction ~= nil and Vector3.new(numbers(args.direction, 3, "direction"))
+		or Vector3.new(0, -1000, 0)
+	local params = RaycastParams.new()
+	local ignore = resolveAll(argStringList(args, "ignore", true))
+	if #ignore > 0 then
+		params.FilterType = Enum.RaycastFilterType.Exclude
+		params.FilterDescendantsInstances = ignore
+	end
+	local hit = workspace:Raycast(origin, direction, params)
+	if hit == nil then
+		return { hit = false }
+	end
+	return {
+		hit = true,
+		instance = hit.Instance and pathOf(hit.Instance) or nil,
+		position = { hit.Position.X, hit.Position.Y, hit.Position.Z },
+		normal = { hit.Normal.X, hit.Normal.Y, hit.Normal.Z },
+		material = hit.Material.Name,
+		distance = hit.Distance,
+	}
 end
 
 function handlers.get_output(args)

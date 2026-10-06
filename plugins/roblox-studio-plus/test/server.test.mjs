@@ -143,3 +143,28 @@ test("stdio server answers initialize and tools/list", async () => {
   assert.equal(lines[1].result.tools.length, TOOLS.length);
   assert.ok(lines[1].result.tools.every((t) => !("local" in t) && !("timeoutMs" in t)));
 });
+
+test("every MCP tool has a Studio handler and vice versa", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const lua = await readFile(new URL("../studio-plugin/RobloxStudioPlus.server.lua", import.meta.url), "utf8");
+  const handlers = new Set([...lua.matchAll(/^function handlers\.(\w+)\(/gm)].map((m) => m[1]));
+  const tools = new Set(TOOLS.map((t) => t.name));
+  assert.deepEqual([...tools].filter((t) => !handlers.has(t)), [], "tools without a Studio handler");
+  assert.deepEqual([...handlers].filter((h) => !tools.has(h)), [], "Studio handlers not exposed as tools");
+  const luaVersion = lua.match(/^local VERSION = "([^"]+)"/m)[1];
+  const { SERVER_INFO } = await import("../server/mcp.mjs");
+  assert.equal(luaVersion, SERVER_INFO.version, "plugin and server versions must match");
+  const manifest = JSON.parse(await readFile(new URL("../.claude-plugin/plugin.json", import.meta.url), "utf8"));
+  assert.equal(manifest.version, SERVER_INFO.version);
+});
+
+test("studio_status warns when plugin and server versions differ", async () => {
+  const bridge = await startBridge();
+  const server = createServer({ bridge, write: () => {} });
+  bridge.lastPollAt = Date.now();
+  const studio = fakeStudioOnce(bridge, () => ({ ok: true, result: { pluginVersion: "0.0.1", placeName: "Test" } }));
+  const result = await server.callTool("studio_status", {});
+  await studio;
+  assert.match(result.content[0].text, /versionWarning/);
+  await bridge.close();
+});

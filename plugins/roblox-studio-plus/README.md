@@ -12,12 +12,13 @@ Plugin para Claude Code que le da a Claude más control sobre Roblox Studio que 
 
 El MCP oficial de Roblox trae `run_code`, `insert_model`, `get_console_output`, `start_stop_play`, `run_script_in_play_mode` y `get_studio_mode`. Este plugin añade herramientas dedicadas en lugar de tener que escribir Luau para todo:
 
-- **Explorar:** `get_tree` (marca nombres duplicados), `find_instances` (por clase, nombre, patrón, tag o atributo), `get_properties`
-- **Editar con deshacer:** `set_properties`, `create_instance`, `clone_instance`, `reparent_instances`, `delete_instances`. Cada operación es un solo paso de Ctrl+Z y se revierte entera si algo falla.
-- **Scripts:** `list_scripts`, `read_script` (con números de línea), `edit_script` (buscar y reemplazar exacto), `write_script`, `search_scripts` (grep en todos los scripts)
+- **Explorar:** `get_tree` (con propiedades opcionales por nodo), `find_instances` (por clase, nombre, patrón, tag o atributo), `get_properties`, `get_bounds`, `raycast`
+- **Nombres repetidos:** si dos hermanos se llaman igual, sus rutas llevan índice (`Workspace.Map.Tree[2]`), así cada uno se puede seleccionar sin ambigüedad.
+- **Editar con deshacer:** `set_properties`, `create_instance`, `create_tree` (una jerarquía entera de una vez: GUIs, modelos, carpetas de RemoteEvents), `insert_asset` (por ID), `clone_instance`, `reparent_instances`, `delete_instances`. Cada operación es un solo paso de Ctrl+Z y se revierte entera si algo falla.
+- **Scripts:** `open_script` (lo abre en el editor en una línea), `list_scripts`, `read_script` (con números de línea), `edit_script` (buscar y reemplazar exacto), `write_script`, `search_scripts` (grep en todos los scripts)
 - **Atributos y tags:** `set_attributes`, `manage_tags`
 - **Studio:** `get_selection`, `set_selection`, `undo`, `redo`, `get_output`
-- **Cámara para trailers:** `camera_get`, `camera_set` (encuadra una instancia), `camera_path` (vuelo suave entre puntos clave, con cuenta atrás para empezar a grabar)
+- **Cámara para trailers:** `camera_get`, `camera_set` (encuadra una instancia), `camera_orbit` (gira alrededor de un modelo), `camera_path` (vuelo suave entre puntos clave, con cuenta atrás para empezar a grabar)
 - **Comodín:** `run_luau` (devuelve los prints y los valores de retorno, y también se puede deshacer)
 
 Los dos MCP pueden estar instalados a la vez (usan puertos distintos).
@@ -51,10 +52,26 @@ Solo una sesión de Claude a la vez puede usar el puerto.
 - `delete_instances` no deja borrar servicios, Terrain ni la cámara.
 - Todos los argumentos se validan dos veces: en el servidor y otra vez en Studio.
 
+## Actualizar
+
+Al actualizar el plugin de Claude Code, copia también el `RobloxStudioPlus.server.lua` nuevo en la carpeta de Plugins de Studio. Si las versiones no coinciden, `studio_status` lo avisa.
+
 ## Tests
 
 ```
 npm test
 ```
 
-Los tests prueban el servidor MCP y el puente HTTP con un Studio simulado. El plugin Luau se comprueba con `luau-compile`. Las funciones que usan la API de Roblox solo se pueden probar dentro de Studio (ver "Pruebas manuales" en el PR).
+Los tests prueban el servidor MCP y el puente HTTP con un Studio simulado, y comprueban que cada herramienta tiene su función en el plugin de Studio. Si tienes `luau` instalado (o defines `LUAU_BIN`), también compilan el plugin y prueban la lógica de rutas con instancias simuladas. Las funciones que usan la API de Roblox solo se pueden probar dentro de Studio:
+
+## Pruebas manuales en Studio
+
+En un place de prueba, con el plugin conectado:
+
+1. `studio_status`: debe devolver el nombre del place y la misma versión que el servidor.
+2. `get_tree` de `Workspace` con profundidad 2.
+3. `set_properties` para cambiar el color de una Part; luego Ctrl+Z en Studio debe deshacerlo en un solo paso.
+4. `create_tree` con una ScreenGui > Frame > TextButton; Ctrl+Z debe quitar todo junto.
+5. `edit_script` en un script de prueba, y `open_script` para verlo en el editor.
+6. `run_luau` con `print(1) return workspace`: debe devolver la salida `1` y la ruta de Workspace.
+7. `camera_orbit` alrededor de un modelo y `camera_path` con 3 puntos: comprueba que el movimiento es suave y que el ratón no lo interrumpe.

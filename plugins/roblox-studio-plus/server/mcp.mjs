@@ -2,7 +2,7 @@
 
 import { TOOLS, TOOL_BY_NAME } from "./tools.mjs";
 
-export const SERVER_INFO = { name: "roblox-studio-plus", version: "0.1.0" };
+export const SERVER_INFO = { name: "roblox-studio-plus", version: "0.2.0" };
 const DEFAULT_TIMEOUT_MS = 60_000;
 const SUPPORTED_PROTOCOLS = ["2025-06-18", "2025-03-26", "2024-11-05"];
 
@@ -69,7 +69,14 @@ export function createServer({ bridge, write }) {
 
     const timeoutMs = tool.timeoutMs ? tool.timeoutMs(args) : DEFAULT_TIMEOUT_MS;
     try {
-      const result = await bridge.send(name, args ?? {}, timeoutMs);
+      let result = await bridge.send(name, args ?? {}, timeoutMs);
+      if (name === "studio_status" && result && result.pluginVersion !== SERVER_INFO.version) {
+        result = {
+          ...result,
+          serverVersion: SERVER_INFO.version,
+          versionWarning: `Studio plugin is ${result.pluginVersion ?? "unknown"} but the MCP server is ${SERVER_INFO.version}. Copy the latest studio-plugin/RobloxStudioPlus.server.lua into Studio's Plugins folder and restart Studio.`,
+        };
+      }
       return { content: [{ type: "text", text: formatResult(result) }] };
     } catch (err) {
       return { isError: true, content: [{ type: "text", text: err.message }] };

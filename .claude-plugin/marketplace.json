@@ -6,7 +6,7 @@
       "name": "roblox-studio-plus",
       "source": "./plugins/roblox-studio-plus",
       "description": "Extra Roblox Studio control for Claude: instance tree, typed properties, undoable edits, script find/replace and grep, tags/attributes, selection, output, and cinematic camera paths for trailer recording.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "category": "development"
     }
   ]

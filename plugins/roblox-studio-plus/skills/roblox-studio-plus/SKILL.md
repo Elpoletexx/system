@@ -9,7 +9,7 @@ The `roblox-studio-plus` MCP server talks to Roblox Studio through a companion p
 
 ## First call
 
-Call `studio_status`. If it says Studio is not connected, tell the user to open Studio → **Plugins** tab → **Studio Plus** → **Connect** (and to allow the localhost HTTP permission prompt). Do not fall back to guessing.
+Call `studio_status`. If it returns `versionWarning`, tell the user to copy the new Studio plugin file and restart Studio. If it says Studio is not connected, tell the user to open Studio → **Plugins** tab → **Studio Plus** → **Connect** (and to allow the localhost HTTP permission prompt). Do not fall back to guessing.
 
 ## Workflow: inspect → plan → change → verify
 
@@ -19,7 +19,11 @@ Call `studio_status`. If it says Studio is not connected, tell the user to open 
    - script text → `edit_script` (exact snippet replace; quote `oldText` from `read_script` output without the line-number prefix). Use `write_script` only for new or fully rewritten scripts.
    - properties → `set_properties`; attributes → `set_attributes`; tags → `manage_tags`
    - structure → `create_instance`, `clone_instance`, `reparent_instances`, `delete_instances`
+   - a whole hierarchy (ScreenGui with frames/buttons, a model, a folder of RemoteEvents) → `create_tree` in one call instead of many `create_instance`
+   - existing assets by ID → `insert_asset` (reuse what the project already owns before building new)
+   - placement → `get_bounds` for sizes/top/bottom, `raycast` to find the ground
    - anything else → `run_luau` (still one undo step)
+   - show the user the code you are talking about → `open_script` at the line
 4. **Verify**: re-read what you changed, `search_scripts` for other references to renamed things, `get_output` for errors, and use the official MCP's play-mode tools for a runtime check.
 
 Every mutating tool is a single Studio undo step and is rolled back if any part fails. `undo`/`redo` step through Studio's history (including the user's own steps — only undo what you just did).
@@ -28,7 +32,8 @@ Every mutating tool is a single Studio undo step and is rolled back if any part 
 
 - Dotted from a service: `Workspace.Map.SpawnLocation`, `ServerScriptService.Main`. Leading `game.` is optional.
 - If a name contains a dot use `/`: `ReplicatedStorage/Modules/Config.v2`.
-- Lookups return the **first** child with that name. `get_tree` flags duplicated sibling names with `dup: true` — rename or use `find_instances` + `set_selection` to confirm the right one before editing duplicates.
+- Siblings that share a name get an index: `Workspace.Map.Tree[2]` (1-based, Explorer order). Every path a tool returns already includes it, so copy paths from tool output instead of typing them. A bare `Tree` means the first one. `get_tree` also marks these with `dup: true`.
+- Indexes shift when siblings are added, removed or reordered — re-read paths after structural changes.
 
 ## Values
 
@@ -48,7 +53,7 @@ For attributes (which have no current type when new) use the tagged form for any
 
 ## Recording trailers / clips
 
-`camera_set` (position + lookAt, or `target` to frame an instance) and `camera_path` (Catmull-Rom spline through keyframes, smooth easing, `startDelay` countdown printed in Output) fly the Studio camera so the user's screen recorder captures smooth shots. Workflow:
+`camera_set` (position + lookAt, or `target` to frame an instance), `camera_orbit` (turntable around a model) and `camera_path` (Catmull-Rom spline through keyframes, smooth easing, `startDelay` countdown printed in Output) fly the Studio camera so the user's screen recorder captures smooth shots. Workflow:
 
 1. Inspect the map (`get_tree`, `find_instances` for landmarks) and pick shots that show **real gameplay areas**.
 2. Preview each shot with `camera_set`; tweak `Lighting` with `set_properties` only to match the real in-game look.

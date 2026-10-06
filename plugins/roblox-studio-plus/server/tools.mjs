@@ -32,13 +32,14 @@ export const TOOLS = [
   },
   {
     name: "get_tree",
-    description: "Return the instance hierarchy under a path (name, class, child count). Sibling names that are duplicated are flagged with dup=true because path lookups would hit the first match.",
+    description: "Return the instance hierarchy under a path (name, class, child count, optional properties). Duplicated sibling names are flagged dup=true and their paths carry an index like \"Part[2]\" so each one stays addressable.",
     inputSchema: {
       type: "object",
       properties: {
         path: { ...path, default: "game" },
         depth: { type: "integer", minimum: 0, maximum: 10, default: 2 },
         maxChildren: { type: "integer", minimum: 1, maximum: 1000, default: 100 },
+        properties: { type: "array", items: { type: "string" }, description: "Also return these properties for every node (e.g. [\"Position\",\"Anchored\"])." },
       },
     },
   },
@@ -210,6 +211,69 @@ export const TOOLS = [
       required: ["keyframes"],
     },
     timeoutMs: (args) => ((Number(args?.duration) || 8) + (Number(args?.startDelay) || 3) + 30) * 1000,
+  },
+  {
+    name: "camera_orbit",
+    description: "Orbit the Studio camera around an instance (BasePart, Model or Attachment) for a turntable shot. Starts from the camera's current bearing. Blocks until done.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        target: { type: "string", description: "Instance path to orbit around." },
+        radius: { type: "number", minimum: 1 },
+        height: { type: "number", description: "Height above the target's center." },
+        degrees: { type: "number", minimum: -1080, maximum: 1080, default: 360, description: "Negative = clockwise." },
+        duration: { type: "number", minimum: 0.5, maximum: 120, default: 10 },
+        startDelay: { type: "number", minimum: 0, maximum: 30, default: 3 },
+        easing: { type: "string", enum: ["linear", "smooth"], default: "linear" },
+        fov: { type: "number", minimum: 1, maximum: 120 },
+      },
+      required: ["target"],
+    },
+    timeoutMs: (args) => ((Number(args?.duration) || 10) + (Number(args?.startDelay) || 3) + 30) * 1000,
+  },
+  {
+    name: "create_tree",
+    description: "Build a whole instance hierarchy from a nested spec in one undo step (GUIs, models, folders of RemoteEvents...). Each node: {className, name?, properties?, attributes?, tags?, children?}. Max 2000 nodes; nothing is parented until every node succeeded.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        parent: path,
+        tree: { type: "object", description: "Root node spec.", properties: { className: { type: "string" } }, required: ["className"] },
+      },
+      required: ["parent", "tree"],
+    },
+  },
+  {
+    name: "insert_asset",
+    description: "Insert an asset by ID with InsertService:LoadAsset (assets you or Roblox own, or free Creator Store assets). Undoable. Use the official MCP's insert_model to search by name instead.",
+    inputSchema: {
+      type: "object",
+      properties: { assetId: { type: "integer", minimum: 1 }, parent: { ...path, default: "Workspace" } },
+      required: ["assetId"],
+    },
+  },
+  {
+    name: "open_script",
+    description: "Open a script in Studio's script editor at a line, so the user can see the code being discussed.",
+    inputSchema: { type: "object", properties: { path, line: { type: "integer", minimum: 1 } }, required: ["path"] },
+  },
+  {
+    name: "get_bounds",
+    description: "World bounding box of parts/models/attachments: center, size, top/bottom Y. Use it to place things precisely.",
+    inputSchema: { type: "object", properties: { paths }, required: ["paths"] },
+  },
+  {
+    name: "raycast",
+    description: "Cast a ray in Workspace (default: straight down 1000 studs) to find the ground or what is in front of something.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        origin: { type: "array", items: { type: "number" }, minItems: 3, maxItems: 3 },
+        direction: { type: "array", items: { type: "number" }, minItems: 3, maxItems: 3 },
+        ignore: { type: "array", items: { type: "string" }, description: "Instance paths to exclude." },
+      },
+      required: ["origin"],
+    },
   },
   {
     name: "get_output",
