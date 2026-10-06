@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { StudioBridge, CLIENT_HEADER } from "../server/bridge.mjs";
+import { StudioBridge, CLIENT_HEADER, SESSION_HEADER } from "../server/bridge.mjs";
 import { createServer, validateArgs } from "../server/mcp.mjs";
 import { TOOLS } from "../server/tools.mjs";
 
@@ -16,7 +16,7 @@ async function startBridge() {
 // Fake Studio plugin: polls once and answers with `respond(command)`.
 async function fakeStudioOnce(bridge, respond) {
   const base = `http://127.0.0.1:${bridge.port}`;
-  const res = await fetch(`${base}/poll`, { headers: { [CLIENT_HEADER]: "test" } });
+  const res = await fetch(`${base}/poll`, { headers: { [CLIENT_HEADER]: "test", [SESSION_HEADER]: "studio-A" } });
   if (res.status === 204) return null;
   const command = await res.json();
   const reply = await respond(command);
@@ -191,4 +191,36 @@ test("batch steps are validated against each tool's schema", async () => {
   const lua = await readFile(new URL("../studio-plugin/RobloxStudioPlus.server.lua", import.meta.url), "utf8");
   const luaBlocked = new Set([...lua.match(/local BATCH_BLOCKED = \{([^}]*)\}/)[1].matchAll(/(\w+) = true/g)].map((m) => m[1]));
   assert.deepEqual([...luaBlocked].sort(), [...BATCH_BLOCKED].sort(), "batch blocklists must match");
+});
+
+test("a second Studio window cannot steal commands from the connected one", async () => {
+  const bridge = await startBridge();
+  const base = `http://127.0.0.1:${bridge.port}`;
+  const poll = (session) => fetch(`${base}/poll`, { headers: { [CLIENT_HEADER]: "test", [SESSION_HEADER]: session } });
+  const server = createServer({ bridge, write: () => {} });
+
+  const first = poll("studio-A"); // A connects and long-polls
+  await new Promise((r) => setTimeout(r, 50));
+  const second = await poll("studio-B");
+  assert.equal(second.status, 409);
+
+  const call = server.callTool("get_selection", {});
+  const delivered = await first;
+  assert.equal(delivered.status, 200);
+  const command = await delivered.json();
+  assert.equal(command.tool, "get_selection");
+  await fetch(`${base}/result`, {
+    method: "POST",
+    headers: { [CLIENT_HEADER]: "test" },
+    body: JSON.stringify({ id: command.id, ok: true, result: { selection: [] } }),
+  });
+  assert.equal((await call).isError, undefined);
+
+  // Once A has been silent past the connected window, B may take over.
+  bridge.lastPollAt = 0;
+  const takeover = poll("studio-B");
+  await new Promise((r) => setTimeout(r, 50));
+  assert.equal(bridge.activeSession, "studio-B");
+  await bridge.close();
+  await takeover.catch(() => {});
 });

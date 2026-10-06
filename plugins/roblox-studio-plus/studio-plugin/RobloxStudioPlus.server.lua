@@ -22,10 +22,12 @@ if not RunService:IsEdit() then
 	return
 end
 
-local VERSION = "0.3.0"
+local VERSION = "0.4.0"
 local PORT = 44877 -- must match ROBLOX_STUDIO_PLUS_PORT on the MCP server (default 44877)
 local BASE_URL = "http://localhost:" .. PORT
 local SETTING_ENABLED = "RobloxStudioPlus_Enabled"
+-- Identifies this Studio window so the server never splits commands between two open places.
+local SESSION_ID = HttpService:GenerateGUID(false)
 local OUTPUT_BUFFER_SIZE = 500
 
 ---------------------------------------------------------------------------
@@ -83,6 +85,14 @@ local function argNumber(args, key, default, min, max)
 	end
 	if max then
 		v = math.min(v, max)
+	end
+	return v
+end
+
+local function argRequiredNumber(args, key, min, max)
+	local v = argNumber(args, key, nil, min, max)
+	if v == nil then
+		error(("argument '%s' is required"):format(key), 0)
 	end
 	return v
 end
@@ -1080,6 +1090,10 @@ function handlers.search_scripts(args)
 			error("invalid Lua pattern: " .. tostring(err), 0)
 		end
 	end
+	-- Lowercasing a Lua pattern would change classes like %S into %s, so patterns are always case-sensitive.
+	if not plain then
+		caseSensitive = true
+	end
 	local needle = caseSensitive and query or string.lower(query)
 	local matches, total, scanned = {}, 0, 0
 	forEachScript(root, function(s)
@@ -1349,8 +1363,8 @@ function handlers.create_tree(args)
 end
 
 function handlers.insert_asset(args)
-	local assetId = argNumber(args, "assetId")
-	if assetId == nil or assetId <= 0 or assetId % 1 ~= 0 then
+	local assetId = argRequiredNumber(args, "assetId")
+	if assetId <= 0 or assetId % 1 ~= 0 then
 		error("assetId must be a positive integer", 0)
 	end
 	local parent = resolve(argString(args, "parent", true) or "Workspace")
@@ -1427,9 +1441,9 @@ function handlers.terrain_fill(args)
 		if shape == "block" then
 			terrain:FillBlock(cf, Vector3.new(numbers(args.size, 3, "size")), material)
 		elseif shape == "ball" then
-			terrain:FillBall(position, argNumber(args, "radius", nil, 0.5, 2048), material)
+			terrain:FillBall(position, argRequiredNumber(args, "radius", 0.5, 2048), material)
 		elseif shape == "cylinder" then
-			terrain:FillCylinder(cf, argNumber(args, "height", nil, 0.5, 4096), argNumber(args, "radius", nil, 0.5, 2048), material)
+			terrain:FillCylinder(cf, argRequiredNumber(args, "height", 0.5, 4096), argRequiredNumber(args, "radius", 0.5, 2048), material)
 		else
 			error("shape must be block, ball or cylinder", 0)
 		end
@@ -1525,16 +1539,19 @@ function handlers.get_output(args)
 			wanted[t] = true
 		end
 	end
-	local out = {}
+	local out, more = {}, false
 	for _, entry in outputLog do
 		if entry.seq > since and (wanted == nil or wanted[entry.type]) then
+			if #out >= limit then
+				more = true
+				break
+			end
 			table.insert(out, entry)
 		end
 	end
-	if #out > limit then
-		out = { table.unpack(out, #out - limit + 1, #out) }
-	end
-	return { latestSeq = outputSeq, messages = out }
+	local nextSince = #out > 0 and out[#out].seq or math.max(since, outputSeq)
+	local dropped = #outputLog > 0 and since < outputLog[1].seq - 1
+	return { messages = out, nextSince = nextSince, more = more, olderMessagesDropped = dropped or nil }
 end
 
 function handlers.run_luau(args)
@@ -1564,7 +1581,8 @@ function handlers.run_luau(args)
 	end)
 	local returned = {}
 	for i = 1, results.n do
-		returned[i] = encode(results[i])
+		local value = results[i]
+		returned[i] = value == nil and { ["$type"] = "nil" } or encode(value)
 	end
 	return { output = printed, returned = returned }
 end
@@ -1589,7 +1607,11 @@ local function request(method, path, body)
 	return HttpService:RequestAsync({
 		Url = BASE_URL .. path,
 		Method = method,
-		Headers = { ["Content-Type"] = "application/json", ["X-Studio-Plus"] = VERSION },
+		Headers = {
+			["Content-Type"] = "application/json",
+			["X-Studio-Plus"] = VERSION,
+			["X-Studio-Plus-Session"] = SESSION_ID,
+		},
 		Body = body and HttpService:JSONEncode(body) or nil,
 	})
 end
@@ -1624,29 +1646,44 @@ local function bridgeLoop()
 	end
 	loopRunning = true
 	local failures = 0
-	local announced = false
+	local state = "starting" -- starting | connected | unreachable | busy
+	local function setState(newState, detail)
+		if newState == state then
+			return
+		end
+		state = newState
+		if newState == "connected" then
+			print("[Studio Plus] Connected to Claude (" .. game.Name .. ").")
+		elseif newState == "unreachable" then
+			warn(("[Studio Plus] Claude bridge not reachable at %s (%s). Waiting for Claude Code to start it…"):format(BASE_URL, detail))
+		elseif newState == "busy" then
+			warn("[Studio Plus] Another Studio window is already connected to Claude. Press Connect there to disconnect it, then this window will take over.")
+		end
+	end
+
 	while enabled and not unloading do
 		local ok, response = pcall(request, "GET", "/poll")
 		if ok and response.StatusCode == 200 then
 			failures = 0
+			setState("connected")
 			local okDecode, command = pcall(HttpService.JSONDecode, HttpService, response.Body)
 			if okDecode and type(command) == "table" and type(command.id) == "string" then
-				postResult(runCommand(command))
+				if enabled and not unloading then
+					postResult(runCommand(command))
+				else
+					postResult({ id = command.id, ok = false, error = "Studio Plus was disconnected in Studio before this command ran." })
+				end
 			end
 		elseif ok and response.StatusCode == 204 then
 			failures = 0
+			setState("connected")
+		elseif ok and response.StatusCode == 409 then
+			setState("busy")
+			task.wait(5)
 		else
 			failures += 1
-			if not announced then
-				announced = true
-				local reason = ok and ("HTTP " .. tostring(response.StatusCode)) or tostring(response)
-				warn(("[Studio Plus] Claude bridge not reachable at %s (%s). Waiting for Claude Code to start it…"):format(BASE_URL, reason))
-			end
+			setState("unreachable", ok and ("HTTP " .. tostring(response.StatusCode)) or tostring(response))
 			task.wait(math.min(2 + failures, 10))
-		end
-		if ok and failures == 0 and announced then
-			announced = false
-			print("[Studio Plus] Connected to Claude.")
 		end
 	end
 	loopRunning = false

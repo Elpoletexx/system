@@ -5,7 +5,9 @@
 import http from "node:http";
 import { randomUUID } from "node:crypto";
 
-const POLL_WAIT_MS = 20_000;
+// Kept well under Roblox's HTTP timeout so a poll is never abandoned client-side
+// while the server still believes it can deliver a command on it.
+const POLL_WAIT_MS = 10_000;
 const CONNECTED_WINDOW_MS = 30_000;
 const MAX_BODY_BYTES = 16 * 1024 * 1024;
 const MAX_WAITERS = 4;
@@ -13,6 +15,7 @@ const MAX_WAITERS = 4;
 // cross-origin requests without a CORS preflight (which this server never approves),
 // so requiring it stops <img>/no-cors tricks from stealing queued commands.
 export const CLIENT_HEADER = "x-studio-plus";
+export const SESSION_HEADER = "x-studio-plus-session";
 
 export class StudioBridge {
   constructor({ port, host = "127.0.0.1", log = () => {} }) {
@@ -24,6 +27,7 @@ export class StudioBridge {
     this.waiters = []; // long-poll responses waiting for a command
     this.lastPollAt = 0;
     this.pluginVersion = null;
+    this.activeSession = null; // only one Studio window may receive commands
     this.listenError = null;
     this.server = http.createServer((req, res) => this.#handle(req, res));
   }
@@ -124,6 +128,11 @@ export class StudioBridge {
     }
 
     if (req.method === "GET" && url.pathname === "/poll") {
+      const session = String(req.headers[SESSION_HEADER] || "");
+      if (this.activeSession && session !== this.activeSession && this.isConnected()) {
+        return this.#json(res, 409, { error: "another Studio window is connected" });
+      }
+      this.activeSession = session;
       this.lastPollAt = Date.now();
       this.pluginVersion = req.headers[CLIENT_HEADER];
       if (this.waiters.length >= MAX_WAITERS) return this.#json(res, 429, { error: "too many pollers" });

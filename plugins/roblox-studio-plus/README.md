@@ -52,6 +52,7 @@ Solo una sesión de Claude a la vez puede usar el puerto.
 
 - El servidor solo escucha en `127.0.0.1`. Rechaza peticiones que vengan de navegadores (cabecera `Origin`) y con `Host` que no sea local, para evitar ataques de DNS rebinding.
 - Studio manda una cabecera propia (`X-Studio-Plus`) en cada petición. Una página web no puede añadirla sin permiso CORS (que el servidor nunca da), así que una web no puede robar ni contestar comandos.
+- Solo una ventana de Studio recibe órdenes a la vez. Si abres otro place con el plugin conectado, esa ventana espera (y lo avisa en Output) hasta que desconectes la primera, así Claude nunca edita el place equivocado.
 - Límite conocido: cualquier programa que ya se ejecute en tu PC podría abrir el puerto antes que Claude y mandar órdenes a Studio. Ese programa ya tendría acceso a tus archivos (incluida la carpeta de plugins de Studio), así que no añade un riesgo nuevo, pero desconecta el plugin (**Connect**) cuando no lo uses.
 - No hace nada hasta que pulsas **Connect** en Studio.
 - `delete_instances` no deja borrar servicios, Terrain ni la cámara.

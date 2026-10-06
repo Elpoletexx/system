@@ -133,7 +133,7 @@ export const TOOLS = [
       properties: {
         query: { type: "string", minLength: 1 },
         plain: { type: "boolean", default: true, description: "false = treat query as a Lua pattern." },
-        caseSensitive: { type: "boolean", default: false },
+        caseSensitive: { type: "boolean", default: false, description: "Ignored for Lua patterns (always case-sensitive)." },
         root: { ...path, default: "game" },
         limit: { type: "integer", minimum: 1, maximum: 1000, default: 100 },
       },
@@ -326,11 +326,11 @@ export const TOOLS = [
   },
   {
     name: "get_output",
-    description: "Read Studio Output messages captured by the plugin. Pass 'since' (the last seq you saw) to get only new lines.",
+    description: "Read Studio Output messages captured by the plugin (oldest first). Pass the returned nextSince as 'since' to page forward; more=true means call again.",
     inputSchema: {
       type: "object",
       properties: {
-        since: { type: "integer", minimum: 0, default: 0 },
+        since: { type: "integer", minimum: 0, default: 0, description: "Return messages after this seq (use nextSince from the previous call)." },
         types: { type: "array", items: { type: "string", enum: ["output", "info", "warning", "error"] } },
         limit: { type: "integer", minimum: 1, maximum: 500, default: 100 },
       },
