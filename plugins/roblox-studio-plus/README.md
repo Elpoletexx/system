@@ -24,6 +24,11 @@ El MCP oficial de Roblox trae `run_code`, `insert_model`, `get_console_output`, 
 - **Terreno:** `terrain_fill` (bloque, esfera o cilindro de un material; `Air` para excavar)
 - **Comodín:** `run_luau` (devuelve los prints y los valores de retorno, y también se puede deshacer)
 
+**Comandos rápidos** (escríbelos en Claude Code):
+- `/roblox-inspect [zona]`: mapa del place (estructura, scripts, RemoteEvents, frontera cliente/servidor) sin tocar nada.
+- `/roblox-audit [ruta]`: busca backdoors y scripts ofuscados y te da un veredicto por hallazgo. No borra nada sin tu permiso.
+- `/roblox-trailer [duración y estilo]`: planea las tomas siguiendo las normas de anuncios de Roblox y mueve la cámara mientras tú grabas.
+
 Los dos MCP pueden estar instalados a la vez (usan puertos distintos).
 
 ## Instalación

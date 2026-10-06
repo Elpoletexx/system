@@ -6,6 +6,7 @@ import { spawnSync } from "node:child_process";
 import { readFile, writeFile, mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const LUAU = process.env.LUAU_BIN || "luau";
 const available = spawnSync(LUAU, ["--help"]).error === undefined;
@@ -42,7 +43,7 @@ test("Luau script audit rules", { skip: !available && "luau binary not found" },
 
 test("Luau plugin compiles", { skip: !available && "luau binary not found" }, async () => {
   const compiler = LUAU.replace(/luau(\.exe)?$/, "luau-compile$1");
-  const file = new URL("../studio-plugin/RobloxStudioPlus.server.lua", import.meta.url).pathname;
+  const file = fileURLToPath(new URL("../studio-plugin/RobloxStudioPlus.server.lua", import.meta.url));
   const run = spawnSync(compiler, ["--null", file], { encoding: "utf8" });
   if (run.error) return; // compiler not shipped next to luau
   assert.equal(run.status, 0, run.stderr || run.stdout);
