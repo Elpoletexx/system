@@ -22,7 +22,7 @@ if not RunService:IsEdit() then
 	return
 end
 
-local VERSION = "0.4.0"
+local VERSION = "0.5.0"
 local PORT = 44877 -- must match ROBLOX_STUDIO_PLUS_PORT on the MCP server (default 44877)
 local BASE_URL = "http://localhost:" .. PORT
 local SETTING_ENABLED = "RobloxStudioPlus_Enabled"
@@ -444,6 +444,10 @@ local function decode(value, current)
 	elseif ct == "BrickColor" and type(value) == "string" then
 		return BrickColor.new(value)
 	elseif ct == "CFrame" and type(value) == "table" then
+		if #value == 3 then
+			-- Position only: keep the current rotation instead of resetting it.
+			return CFrame.new(numbers(value, 3, "CFrame")) * current.Rotation
+		end
 		return cframeFrom(value)
 	elseif ct == "UDim2" and type(value) == "table" then
 		return UDim2.new(numbers(value, 4, "UDim2"))
@@ -451,6 +455,8 @@ local function decode(value, current)
 		return UDim.new(numbers(value, 2, "UDim"))
 	elseif ct == "NumberRange" and type(value) == "table" then
 		return NumberRange.new(numbers(value, 2, "NumberRange"))
+	elseif ct == "Instance" and type(value) == "string" then
+		return resolve(value)
 	end
 	return value
 end
@@ -535,7 +541,11 @@ local function applyProperties(inst, props)
 			(inst :: any)[name] = value
 		end)
 		if not ok then
-			error(("%s.%s: %s"):format(pathOf(inst), name, tostring(err)), 0)
+			local hint = ""
+			if type(raw) == "string" and current == nil then
+				hint = ' (if this property holds an Instance, pass {"$type":"Instance","path":"..."})'
+			end
+			error(("%s.%s: %s%s"):format(pathOf(inst), name, tostring(err), hint), 0)
 		end
 	end
 end
@@ -596,7 +606,11 @@ local function boundingBox(inst)
 	if inst:IsA("BasePart") then
 		return inst.CFrame, inst.Size
 	elseif inst:IsA("Model") then
-		return inst:GetBoundingBox()
+		local ok, cf, size = pcall(inst.GetBoundingBox, inst)
+		if not ok or size.Magnitude == 0 then
+			error(pathOf(inst) .. " has no parts to measure", 0)
+		end
+		return cf, size
 	elseif inst:IsA("Attachment") then
 		return inst.WorldCFrame, Vector3.new(4, 4, 4)
 	end
@@ -611,6 +625,14 @@ end
 ---------------------------------------------------------------------------
 -- Camera paths
 ---------------------------------------------------------------------------
+
+-- CFrame.lookAt with identical points yields NaN; fall back to a fixed orientation.
+local function safeLookAt(position, target, fallback)
+	if (target - position).Magnitude < 1e-3 then
+		return CFrame.new(position) * (fallback and fallback.Rotation or CFrame.new())
+	end
+	return CFrame.lookAt(position, target)
+end
 
 local function catmullRom(p0, p1, p2, p3, t)
 	local t2, t3 = t * t, t * t * t
@@ -890,16 +912,37 @@ end
 function handlers.set_properties(args)
 	local targets = resolveAll(argStringList(args, "paths"))
 	local props = argMap(args, "properties")
+	local MAX_REPORTED = 25
+
+	local function snapshot(inst)
+		local values = {}
+		for name in props do
+			local ok, value = readProperty(inst, name)
+			values[name] = ok and encode(value) or nil
+		end
+		return values
+	end
+
+	local before = {}
+	for i, inst in targets do
+		if i <= MAX_REPORTED then
+			before[i] = snapshot(inst)
+		end
+	end
 	withUndo("set properties", function()
 		for _, inst in targets do
 			applyProperties(inst, props)
 		end
 	end)
+	-- Report what actually changed so the caller can verify (Roblox may clamp or round values).
 	local changed = {}
-	for _, inst in targets do
-		table.insert(changed, pathOf(inst))
+	for i, inst in targets do
+		if i > MAX_REPORTED then
+			break
+		end
+		table.insert(changed, { path = pathOf(inst), before = before[i], after = snapshot(inst) })
 	end
-	return { changed = changed }
+	return { count = #targets, changed = changed, truncated = #targets > MAX_REPORTED or nil }
 end
 
 function handlers.create_instance(args)
@@ -1213,13 +1256,13 @@ function handlers.camera_set(args)
 		local distance = radius * argNumber(args, "distance", 1.5, 0.1) / math.tan(math.rad(camera.FieldOfView / 2))
 		local position = args.position ~= nil and Vector3.new(numbers(args.position, 3, "position"))
 			or (cf.Position + Vector3.new(1, 0.6, 1).Unit * distance)
-		camera.CFrame = CFrame.lookAt(position, cf.Position)
+		camera.CFrame = safeLookAt(position, cf.Position, camera.CFrame)
 		camera.Focus = CFrame.new(cf.Position)
 	elseif args.position ~= nil then
 		local position = Vector3.new(numbers(args.position, 3, "position"))
 		local look = args.lookAt ~= nil and Vector3.new(numbers(args.lookAt, 3, "lookAt"))
 			or (position + camera.CFrame.LookVector)
-		camera.CFrame = CFrame.lookAt(position, look)
+		camera.CFrame = safeLookAt(position, look, camera.CFrame)
 		camera.Focus = CFrame.new(look)
 	end
 	return handlers.camera_get()
@@ -1236,7 +1279,7 @@ local function playFrames(frames, easing, startDelay)
 			u = smoothstep(math.clamp(u, 0, 1))
 		end
 		local pos, look, fov = samplePath(frames, u * total)
-		camera.CFrame = CFrame.lookAt(pos, look)
+		camera.CFrame = safeLookAt(pos, look, camera.CFrame)
 		camera.Focus = CFrame.new(look)
 		if fov then
 			camera.FieldOfView = fov

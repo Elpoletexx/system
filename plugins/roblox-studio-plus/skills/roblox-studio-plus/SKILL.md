@@ -44,12 +44,14 @@ Plain JSON is coerced to the property's current type:
 | Type | Plain form | Tagged form |
 | --- | --- | --- |
 | Vector3 | `[x, y, z]` | `{"$type":"Vector3","value":[x,y,z]}` |
-| CFrame | `[x,y,z]` or 12 components | `{"$type":"CFrame","position":[..],"lookAt":[..]}` |
+| CFrame | `[x,y,z]` (moves, keeps current rotation) or 12 components | `{"$type":"CFrame","position":[..],"lookAt":[..]}` |
 | Color3 | `"#ff8800"`, `[1,0.5,0]`, or `[255,128,0]` | `{"$type":"Color3","value":[r,g,b]}` |
 | Enum | `"Neon"` | `{"$type":"EnumItem","enum":"Material","value":"Neon"}` |
 | UDim2 | `[xs, xo, ys, yo]` | `{"$type":"UDim2","value":[..]}` |
 | BrickColor | `"Bright red"` | `{"$type":"BrickColor","value":"Bright red"}` |
-| Instance ref | — | `{"$type":"Instance","path":"Workspace.Part"}` |
+| Instance ref | `"Workspace.Part"` when the property already holds an Instance | `{"$type":"Instance","path":"Workspace.Part"}` (always works, needed when the property is empty) |
+
+`set_properties` returns `before` and `after` for each instance (first 25). Check `after`: Roblox can clamp or round values (e.g. Transparency, sizes below the minimum).
 
 For attributes (which have no current type when new) use the tagged form for anything that is not a string, number or boolean. `Parent` cannot be set with `set_properties`; use `reparent_instances`.
 

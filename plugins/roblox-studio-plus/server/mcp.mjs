@@ -2,7 +2,7 @@
 
 import { TOOLS, TOOL_BY_NAME, BATCH_BLOCKED } from "./tools.mjs";
 
-export const SERVER_INFO = { name: "roblox-studio-plus", version: "0.4.0" };
+export const SERVER_INFO = { name: "roblox-studio-plus", version: "0.5.0" };
 const DEFAULT_TIMEOUT_MS = 60_000;
 const SUPPORTED_PROTOCOLS = ["2025-06-18", "2025-03-26", "2024-11-05"];
 
