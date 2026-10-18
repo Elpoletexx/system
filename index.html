@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PLVZ03 Portfolio</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="PLVZ03 — Roblox developer (Luau). Gameplay systems, frameworks, UI and anti-cheat.">
+<meta name="color-scheme" content="dark light">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap topbar__inner">
+    <a class="wordmark" href="#top">PLVZ03</a>
+    <nav class="topnav" aria-label="Sections">
+      <a href="#projects" data-i18n="nav.projects">Projects</a>
+      <a href="#experience" data-i18n="nav.experience">Experience</a>
+      <a href="#rates" data-i18n="nav.rates">Rates</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" id="lang-ca" data-lang="ca" aria-pressed="false">CA</button>
+      <button type="button" id="lang-es" data-lang="es" aria-pressed="false">ES</button>
+      <button type="button" id="lang-en" data-lang="en" aria-pressed="true">EN</button>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero wrap" aria-labelledby="hero-title">
+    <div class="hero__text">
+      <p class="eyebrow" data-i18n="hero.eyebrow"></p>
+      <h1 id="hero-title" class="hero__title">PLVZ03</h1>
+      <p class="hero__lede" data-i18n="hero.lede"></p>
+      <div class="hero__cta">
+        <a class="btn btn--primary" href="#projects" data-i18n="hero.ctaPrimary"></a>
+        <a class="btn" href="#rates" data-i18n="hero.ctaSecondary"></a>
+      </div>
+      <dl class="facts" id="facts"></dl>
+    </div>
+    <figure class="verdict" aria-labelledby="verdict-title">
+      <p class="verdict__title" id="verdict-title" data-i18n="panel.title"></p>
+      <div class="verdict__lane">
+        <span class="verdict__who" data-i18n="panel.client"></span>
+        <span class="verdict__what" data-i18n="panel.clientDoes"></span>
+      </div>
+      <div class="verdict__arrow" aria-hidden="true"></div>
+      <div class="verdict__lane verdict__lane--server">
+        <span class="verdict__who" data-i18n="panel.server"></span>
+        <span class="verdict__what" data-i18n="panel.serverDoes"></span>
+        <ul class="verdict__checks" id="verdict-checks"></ul>
+      </div>
+      <figcaption class="verdict__quote" data-i18n="panel.quote"></figcaption>
+    </figure>
+  </section>
+
+  <section class="skills wrap" aria-labelledby="skills-title">
+    <h2 id="skills-title" class="section-title" data-i18n="skills.title"></h2>
+    <ul class="skills__grid" id="skills"></ul>
+    <p class="stack"><span class="stack__label" data-i18n="skills.stackLabel"></span> <span id="stack"></span></p>
+  </section>
+
+  <section class="projects" id="projects" aria-labelledby="projects-title">
+    <div class="wrap">
+      <header class="section-head">
+        <h2 id="projects-title" class="section-title" data-i18n="projects.title"></h2>
+        <p class="section-intro" data-i18n="projects.intro"></p>
+      </header>
+      <div id="project-list" class="project-list"></div>
+    </div>
+  </section>
+
+  <section class="experience" id="experience" aria-labelledby="experience-title">
+    <div class="wrap" id="experience-body">
+      <header class="section-head">
+        <h2 id="experience-title" class="section-title" data-i18n="experience.title"></h2>
+      </header>
+    </div>
+  </section>
+
+  <section class="rates wrap" id="rates" aria-labelledby="rates-title">
+    <header class="section-head">
+      <h2 id="rates-title" class="section-title" data-i18n="rates.title"></h2>
+      <p class="section-intro" data-i18n="rates.intro"></p>
+    </header>
+    <div class="rates__grid" id="rates-body"></div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap footer__inner" id="footer"></div>
+</footer>
+
+<noscript><p class="wrap noscript">This portfolio needs JavaScript to load its content.</p></noscript>
+<script src="js/content.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
