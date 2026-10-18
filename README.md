@@ -7,7 +7,7 @@ Static portfolio site (HTML, CSS and vanilla JS, no build step) in Catalan, Span
 | Path | What it is |
 | --- | --- |
 | `index.html` | Page skeleton |
-| `css/styles.css` | All styling (light and dark themes) |
+| `css/styles.css` | All styling (single dark theme) |
 | `js/content.js` | **All text and data**: projects, client work, rates, contact, in `ca` / `es` / `en` |
 | `js/main.js` | Renders the content and handles the language switcher |
 | `assets/img/` | Project images |
@@ -16,8 +16,9 @@ Static portfolio site (HTML, CSS and vanilla JS, no build step) in Catalan, Span
 
 Everything you will normally change is in `js/content.js`:
 
-- **Contact**: the `contact` list (email, Discord, Roblox). For the Roblox entry, swap the search link for `https://www.roblox.com/users/<your user id>/profile` once you have the ID.
-- **Hero showreel**: `heroReel` lists the project ids whose images rotate in the hero.
+- **Contact**: the `contact` list (email first, then Discord and Roblox). For Roblox, add `href: "https://www.roblox.com/users/<your user id>/profile"` once you have the ID.
+- **Hero**: `heroWork` lists the three projects shown under the headline (`id` plus `focus`, a CSS object-position).
+- **Project layout**: `layout: "compact"` shows a project as a smaller card; `releaseBy: "YYYY-MM"` hides the release estimate once that month has passed.
 - **Release dates / status**: each project's `status` text, per language. `tone` controls the status dot: `dev`, `live`, `private` or `old`. `color` is the project's own accent.
 - **New project**: copy an existing entry in `projects`, change the `id`, `images` and the `en` / `es` / `ca` blocks.
 

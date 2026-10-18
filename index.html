@@ -3,26 +3,35 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>PLVZ03 Portfolio</title>
-<meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="PLVZ03 — Roblox systems developer (Luau). Gameplay systems, frameworks, UI and anti-cheat. Murder After Dark, Pocket Planet, Sunset Party Club, ZPSentinel.">
+<title>PLVZ03 · Roblox systems developer</title>
+<meta name="description" content="PLVZ03 — Roblox systems developer (Luau). Gameplay systems, frameworks, UI and anti-cheat. TCE: The Continental Era, Murder After Dark, Sunset Party Club, Pocket Planet, ZPSentinel.">
 <meta name="theme-color" content="#0b0b0c">
-<meta property="og:title" content="PLVZ03 — Roblox systems developer">
-<meta property="og:description" content="Gameplay systems, frameworks, UI and anti-cheat for Roblox.">
-<meta property="og:image" content="assets/img/murder-after-dark.jpg">
+<link rel="canonical" href="https://elpoletexx.github.io/system/">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <meta property="og:type" content="website">
+<meta property="og:site_name" content="PLVZ03">
+<meta property="og:title" content="PLVZ03 · Roblox systems developer">
+<meta property="og:description" content="Gameplay systems, frameworks, UI and anti-cheat for Roblox, built with the server as the authority.">
+<meta property="og:url" content="https://elpoletexx.github.io/system/">
+<meta property="og:image" content="https://elpoletexx.github.io/system/assets/img/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Sunset Party Club stage at night">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap">
 <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+<a class="skip" href="#projects" data-i18n="label.skip">Skip to projects</a>
+
 <header class="nav" id="nav">
   <div class="wrap nav__inner">
     <a class="nav__brand" href="#top">PLVZ03</a>
     <nav class="nav__links" aria-label="Sections">
       <a href="#projects" data-i18n="nav.projects">Projects</a>
-      <a href="#experience" data-i18n="nav.experience">Experience</a>
+      <a href="#about" data-i18n="nav.about">About</a>
       <a href="#rates" data-i18n="nav.rates">Rates</a>
       <a href="#contact" data-i18n="nav.contact">Contact</a>
     </nav>
@@ -35,85 +44,59 @@
 </header>
 
 <main id="top">
-  <section class="hero" aria-labelledby="hero-title">
-    <div class="hero__slides" id="hero-slides" aria-hidden="true"></div>
-    <div class="hero__shade" aria-hidden="true"></div>
-    <div class="wrap hero__content">
-      <p class="hero__status intro" style="--d:0"><span class="dot" aria-hidden="true"></span><span data-i18n="hero.status"></span></p>
-      <h1 id="hero-title" class="hero__title"><span class="mask"><span class="intro" style="--d:1">PLVZ03</span></span></h1>
-      <p class="hero__role intro" style="--d:2" data-i18n="hero.role"></p>
-      <p class="hero__lede intro" style="--d:3" data-i18n="hero.lede"></p>
-      <div class="hero__cta intro" style="--d:4">
-        <a class="btn btn--light" href="#contact" data-i18n="hero.ctaPrimary"></a>
-        <a class="link-arrow" href="#projects" data-i18n="hero.ctaSecondary"></a>
-      </div>
+  <section class="hero wrap" aria-labelledby="hero-title">
+    <p class="hero__role label" data-i18n="hero.role">Roblox systems developer · Luau</p>
+    <h1 id="hero-title" class="hero__title" data-i18n="hero.title">I build Roblox games from the server out.</h1>
+    <p class="hero__lede" data-i18n="hero.lede"></p>
+    <div class="hero__cta">
+      <a class="btn" href="#contact" data-i18n="hero.ctaPrimary">Get a quote</a>
+      <a class="link-arrow" href="#projects" data-i18n="hero.ctaSecondary">See projects</a>
+      <span class="hero__status" data-i18n="hero.status"></span>
     </div>
-    <div class="wrap intro" style="--d:5">
-      <div class="hero__reel">
-        <a class="reel__caption" id="reel-caption" href="#projects">
-          <span class="reel__label" data-i18n="hero.reel"></span>
-          <span class="reel__count" id="reel-count"></span>
-          <span class="reel__name" id="reel-name"></span>
-        </a>
-        <div class="reel__bars" id="reel-bars"></div>
-      </div>
-    </div>
+    <ul class="hero__work" id="hero-work"></ul>
   </section>
 
-  <section class="about wrap" aria-labelledby="about-title">
-    <h2 id="about-title" class="about__title" data-reveal data-i18n="about.title"></h2>
-    <div class="about__body">
-      <p class="about__text" data-reveal data-i18n="about.text"></p>
-      <dl class="facts" id="facts" data-reveal></dl>
-      <div class="skills" data-reveal>
-        <h3 class="kicker" data-i18n="skills.title"></h3>
-        <ul class="skills__list" id="skills"></ul>
-        <p class="skills__stack"><span data-i18n="skills.stackLabel"></span>: <span id="stack"></span></p>
-      </div>
-    </div>
+  <section class="work wrap" id="projects" aria-labelledby="projects-title">
+    <header class="section-head" data-reveal="rule">
+      <h2 id="projects-title" class="section-title" data-i18n="projects.title"></h2>
+      <p class="section-intro" data-i18n="projects.intro"></p>
+    </header>
+    <div class="index" id="project-index"></div>
+    <div class="cases" id="project-list"></div>
+    <h3 class="label cases__more" data-reveal="rule" data-i18n="projects.more"></h3>
+    <div class="cases cases--compact" id="project-compact"></div>
   </section>
 
-  <section class="manifesto" aria-labelledby="manifesto-kicker">
-    <div class="wrap">
-      <p class="kicker" id="manifesto-kicker" data-i18n="manifesto.kicker"></p>
-      <p class="manifesto__text" id="manifesto"></p>
-    </div>
-  </section>
-
-  <section class="work" id="projects" aria-labelledby="projects-title">
-    <div class="wrap">
-      <header class="section-head">
-        <h2 id="projects-title" class="section-title" data-reveal data-i18n="projects.title"></h2>
-        <p class="section-intro" data-reveal data-i18n="projects.intro"></p>
-      </header>
-      <div class="index" id="project-index"></div>
-      <div class="cases" id="project-list"></div>
-    </div>
-  </section>
-
-  <section class="experience" id="experience" aria-labelledby="experience-title">
-    <div class="wrap" id="experience-body">
-      <header class="section-head">
-        <h2 id="experience-title" class="section-title" data-reveal data-i18n="experience.title"></h2>
-      </header>
+  <section class="about wrap" id="about" aria-labelledby="about-title">
+    <header class="section-head" data-reveal="rule">
+      <h2 id="about-title" class="section-title" data-i18n="about.title"></h2>
+      <p class="about__text" data-i18n="about.text"></p>
+    </header>
+    <div class="skills">
+      <h3 class="label" data-i18n="skills.title"></h3>
+      <ul class="skills__list" id="skills"></ul>
+      <p class="skills__stack"><span data-i18n="skills.stackLabel"></span>: <span id="stack"></span></p>
     </div>
   </section>
 
   <section class="rates wrap" id="rates" aria-labelledby="rates-title">
-    <header class="section-head">
-      <h2 id="rates-title" class="section-title" data-reveal data-i18n="rates.title"></h2>
-      <p class="section-intro" data-reveal data-i18n="rates.intro"></p>
+    <header class="section-head" data-reveal="rule">
+      <h2 id="rates-title" class="section-title" data-i18n="rates.title"></h2>
+      <p class="section-intro" data-i18n="rates.intro"></p>
     </header>
     <div class="rates__grid" id="rates-body"></div>
   </section>
 
-  <section class="contact" id="contact" aria-labelledby="contact-title">
-    <div class="wrap">
-      <p class="kicker" data-reveal data-i18n="footer.contact"></p>
-      <h2 id="contact-title" class="contact__title" data-reveal data-i18n="contact.title"></h2>
-      <p class="contact__text" data-reveal data-i18n="contact.text"></p>
-      <ul class="contact__list" id="contact-list"></ul>
-    </div>
+  <section class="contact wrap" id="contact" aria-labelledby="contact-title">
+    <header class="section-head" data-reveal="rule">
+      <h2 id="contact-title" class="section-title" data-i18n="nav.contact"></h2>
+      <div>
+        <p class="contact__lead" data-i18n="contact.title"></p>
+        <p class="contact__text" data-i18n="contact.text"></p>
+      </div>
+    </header>
+    <div class="contact__primary" id="contact-primary"></div>
+    <ul class="contact__list" id="contact-list"></ul>
   </section>
 </main>
 
@@ -121,9 +104,7 @@
   <div class="wrap footer__inner" id="footer"></div>
 </footer>
 
-<div class="preview" id="preview" aria-hidden="true"><img id="preview-img" alt=""></div>
-
-<dialog class="lightbox" id="lightbox">
+<dialog class="lightbox" id="lightbox" aria-label="Image">
   <div class="lightbox__bar">
     <button type="button" class="lightbox__close" id="lightbox-close" data-i18n="label.close">Close</button>
   </div>
