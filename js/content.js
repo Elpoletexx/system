@@ -7,12 +7,20 @@ window.PORTFOLIO = {
   handle: "PLVZ03",
 
   /*
-    Contact links shown in the footer. The section stays hidden while this list is empty.
-    Example: { label: "Discord", value: "username", href: "https://discord.com/users/ID" }
+    Contact methods shown in the contact section. "action" picks the button label:
+    "write" (email) or "open" (profile link). Leave href empty for copy-only entries.
+    Roblox: replace the search link with https://www.roblox.com/users/<your user id>/profile when available.
   */
-  contact: [],
+  contact: [
+    { label: "Email", value: "zpstudios@protonmail.com", href: "mailto:zpstudios@protonmail.com", action: "write" },
+    { label: "Discord", value: "poletess_40567" },
+    { label: "Roblox", value: "PoletessXZaareet", href: "https://www.roblox.com/search/users?keyword=PoletessXZaareet", action: "open" }
+  ],
 
   languagesSpoken: ["Català", "Castellano", "English"],
+
+  // Projects shown in the hero showreel, by id (projects or experience).
+  heroReel: ["murder-after-dark", "sunset-party-club", "tce", "mountain-party-club"],
 
   stack: [
     "Roblox Studio",
@@ -29,22 +37,31 @@ window.PORTFOLIO = {
       "nav.projects": "Projects",
       "nav.experience": "Experience",
       "nav.rates": "Rates",
-      "hero.eyebrow": "Roblox developer · Luau",
+      "about.title": "Making systems work is the start. Making them feel polished, secure and easy to grow is the job.",
+      "about.text": "Since 2023 I have designed and built Roblox games end to end: core frameworks, gameplay, UI, data, monetization and security. I work on my own titles and on client projects, including large inherited codebases.",
+      "manifesto.kicker": "How I build multiplayer systems",
+      "hero.reel": "Showreel",
+      "nav.contact": "Contact",
+      "hero.status": "Open for commissions",
+      "hero.role": "Roblox systems developer · Luau",
       "hero.lede": "I build Roblox games from the server out: gameplay systems, frameworks, UI and anti-cheat, with the server deciding what is allowed.",
-      "hero.ctaPrimary": "See projects",
-      "hero.ctaSecondary": "Rates",
-      "facts": [
-        ["Building on Roblox", "since 2023"],
-        ["Languages", "Català · Castellano · English"],
-        ["Work", "Per task or long-term"]
+      "hero.ctaPrimary": "Work with me",
+      "hero.ctaSecondary": "See projects",
+      "stats": [
+        ["On Roblox since", "2023"],
+        ["Games and systems", "6"],
+        ["Game modes in Murder After Dark", "4"],
+        ["Automated checks in Pocket Planet", "1000+"]
       ],
-      "panel.title": "How I build",
-      "panel.client": "Client",
-      "panel.clientDoes": "requests an action",
-      "panel.server": "Server",
-      "panel.serverDoes": "checks it, then decides",
-      "panel.checks": ["Fire rate & cooldown", "Ammo & reload state", "Distance & shot origin", "Rank & loadout permission"],
-      "panel.quote": "“The client requests an action. The server determines whether that action is allowed.”",
+      "manifesto.text": "“The client requests an action. The server determines whether that action is allowed.”",
+      "projects.index": ["Project", "Genre", "Years", "Status"],
+      "label.enlarge": "Enlarge image",
+      "label.close": "Close",
+      "contact.title": "Have a project in mind?",
+      "contact.text": "A system, a full game or long-term help: tell me what you need. I answer in Catalan, Spanish or English.",
+      "contact.write": "Send email",
+      "contact.open": "Open profile",
+      "rates.hoursUnit": "h / week",
       "skills.title": "What I work on",
       "skills.stackLabel": "Tools",
       "skills.items": [
@@ -83,22 +100,31 @@ window.PORTFOLIO = {
       "nav.projects": "Proyectos",
       "nav.experience": "Experiencia",
       "nav.rates": "Tarifas",
-      "hero.eyebrow": "Desarrollador de Roblox · Luau",
+      "about.title": "Que los sistemas funcionen es el principio. Que se sientan pulidos, seguros y fáciles de ampliar es el trabajo.",
+      "about.text": "Desde 2023 diseño y construyo juegos de Roblox de principio a fin: frameworks, gameplay, UI, datos, monetización y seguridad. Trabajo en mis propios juegos y en proyectos de clientes, incluidos códigos heredados de gran tamaño.",
+      "manifesto.kicker": "Cómo construyo sistemas multijugador",
+      "hero.reel": "Showreel",
+      "nav.contact": "Contacto",
+      "hero.status": "Disponible para encargos",
+      "hero.role": "Desarrollador de sistemas en Roblox · Luau",
       "hero.lede": "Construyo juegos de Roblox desde el servidor: sistemas de juego, frameworks, UI y anticheat, con el servidor decidiendo qué está permitido.",
-      "hero.ctaPrimary": "Ver proyectos",
-      "hero.ctaSecondary": "Tarifas",
-      "facts": [
-        ["Desarrollando en Roblox", "desde 2023"],
-        ["Idiomas", "Català · Castellano · English"],
-        ["Trabajo", "Por tarea o a largo plazo"]
+      "hero.ctaPrimary": "Trabajemos juntos",
+      "hero.ctaSecondary": "Ver proyectos",
+      "stats": [
+        ["En Roblox desde", "2023"],
+        ["Juegos y sistemas", "6"],
+        ["Modos en Murder After Dark", "4"],
+        ["Tests automáticos en Pocket Planet", "1000+"]
       ],
-      "panel.title": "Cómo trabajo",
-      "panel.client": "Cliente",
-      "panel.clientDoes": "solicita una acción",
-      "panel.server": "Servidor",
-      "panel.serverDoes": "la comprueba y decide",
-      "panel.checks": ["Cadencia y cooldown", "Munición y estado de recarga", "Distancia y origen del disparo", "Permisos de rango y equipamiento"],
-      "panel.quote": "«El cliente solicita una acción. El servidor determina si esa acción está permitida.»",
+      "manifesto.text": "«El cliente solicita una acción. El servidor determina si esa acción está permitida.»",
+      "projects.index": ["Proyecto", "Género", "Años", "Estado"],
+      "label.enlarge": "Ampliar imagen",
+      "label.close": "Cerrar",
+      "contact.title": "¿Tienes un proyecto en mente?",
+      "contact.text": "Un sistema, un juego completo o ayuda a largo plazo: cuéntame qué necesitas. Respondo en catalán, castellano o inglés.",
+      "contact.write": "Enviar email",
+      "contact.open": "Ver perfil",
+      "rates.hoursUnit": "h / semana",
       "skills.title": "En qué trabajo",
       "skills.stackLabel": "Herramientas",
       "skills.items": [
@@ -137,22 +163,31 @@ window.PORTFOLIO = {
       "nav.projects": "Projectes",
       "nav.experience": "Experiència",
       "nav.rates": "Tarifes",
-      "hero.eyebrow": "Desenvolupador de Roblox · Luau",
+      "about.title": "Que els sistemes funcionin és el principi. Que se sentin polits, segurs i fàcils d'ampliar és la feina.",
+      "about.text": "Des del 2023 dissenyo i construeixo jocs de Roblox de principi a fi: frameworks, gameplay, UI, dades, monetització i seguretat. Treballo en els meus propis jocs i en projectes de clients, inclosos codis heretats de grans dimensions.",
+      "manifesto.kicker": "Com construeixo sistemes multijugador",
+      "hero.reel": "Showreel",
+      "nav.contact": "Contacte",
+      "hero.status": "Disponible per a encàrrecs",
+      "hero.role": "Desenvolupador de sistemes a Roblox · Luau",
       "hero.lede": "Construeixo jocs de Roblox des del servidor: sistemes de joc, frameworks, UI i anticheat, amb el servidor decidint què està permès.",
-      "hero.ctaPrimary": "Veure projectes",
-      "hero.ctaSecondary": "Tarifes",
-      "facts": [
-        ["Desenvolupant a Roblox", "des del 2023"],
-        ["Idiomes", "Català · Castellano · English"],
-        ["Feina", "Per tasca o a llarg termini"]
+      "hero.ctaPrimary": "Treballem junts",
+      "hero.ctaSecondary": "Veure projectes",
+      "stats": [
+        ["A Roblox des del", "2023"],
+        ["Jocs i sistemes", "6"],
+        ["Modes a Murder After Dark", "4"],
+        ["Tests automàtics a Pocket Planet", "1000+"]
       ],
-      "panel.title": "Com treballo",
-      "panel.client": "Client",
-      "panel.clientDoes": "sol·licita una acció",
-      "panel.server": "Servidor",
-      "panel.serverDoes": "la comprova i decideix",
-      "panel.checks": ["Cadència i cooldown", "Munició i estat de recàrrega", "Distància i origen del tret", "Permisos de rang i equipament"],
-      "panel.quote": "«El client sol·licita una acció. El servidor determina si aquesta acció està permesa.»",
+      "manifesto.text": "«El client sol·licita una acció. El servidor determina si aquesta acció està permesa.»",
+      "projects.index": ["Projecte", "Gènere", "Anys", "Estat"],
+      "label.enlarge": "Amplia la imatge",
+      "label.close": "Tanca",
+      "contact.title": "Tens un projecte al cap?",
+      "contact.text": "Un sistema, un joc complet o ajuda a llarg termini: explica'm què necessites. Responc en català, castellà o anglès.",
+      "contact.write": "Envia un email",
+      "contact.open": "Obre el perfil",
+      "rates.hoursUnit": "h / setmana",
       "skills.title": "En què treballo",
       "skills.stackLabel": "Eines",
       "skills.items": [
@@ -190,18 +225,20 @@ window.PORTFOLIO = {
   },
 
   /*
-    status.tone: "dev" (in development), "live", "private" or "old" (deprecated).
+    tone: status dot, "dev" (in development), "live", "private" or "old" (deprecated).
+    color: the project's own accent, taken from its artwork.
     Detail items can be a plain string or ["Name", "description"].
   */
   projects: [
     {
       id: "murder-after-dark",
+      color: "#d9b46c",
       years: "2026 –",
       tone: "dev",
       images: [{ src: "assets/img/murder-after-dark.jpg", w: 1280, h: 720 }],
       en: {
         title: "Murder After Dark",
-        status: "In development · release late November–Christmas",
+        status: "In development · release late November–Christmas 2026",
         role: "Founder · Lead Programmer · Gameplay & Systems",
         alt: "Murder After Dark main menu with Play, Inventory, Shop, Cases, Settings and Private Servers buttons",
         tags: ["Social deduction", "Multiplayer", "4 game modes", "Custom framework"],
@@ -228,7 +265,7 @@ window.PORTFOLIO = {
       },
       es: {
         title: "Murder After Dark",
-        status: "En desarrollo · lanzamiento entre finales de noviembre y Navidad",
+        status: "En desarrollo · lanzamiento entre finales de noviembre y Navidad de 2026",
         role: "Fundador · Programador principal · Gameplay y sistemas",
         alt: "Menú principal de Murder After Dark con los botones Play, Inventory, Shop, Cases, Settings y Private Servers",
         tags: ["Deducción social", "Multijugador", "4 modos de juego", "Framework propio"],
@@ -255,7 +292,7 @@ window.PORTFOLIO = {
       },
       ca: {
         title: "Murder After Dark",
-        status: "En desenvolupament · llançament entre finals de novembre i Nadal",
+        status: "En desenvolupament · llançament entre finals de novembre i Nadal del 2026",
         role: "Fundador · Programador principal · Gameplay i sistemes",
         alt: "Menú principal de Murder After Dark amb els botons Play, Inventory, Shop, Cases, Settings i Private Servers",
         tags: ["Deducció social", "Multijugador", "4 modes de joc", "Framework propi"],
@@ -284,12 +321,13 @@ window.PORTFOLIO = {
 
     {
       id: "pocket-planet",
+      color: "#a98bff",
       years: "2026 –",
       tone: "dev",
       images: [{ src: "assets/img/pocket-planet.jpg", w: 1280, h: 720 }],
       en: {
         title: "Pocket Planet",
-        status: "In development · release expected this month",
+        status: "In development · release expected October 2026",
         role: "Systems, progression, VFX and game direction",
         alt: "A small planet floating in a purple starfield",
         tags: ["Progression", "Collection", "Pets", "VFX"],
@@ -310,7 +348,7 @@ window.PORTFOLIO = {
       },
       es: {
         title: "Pocket Planet",
-        status: "En desarrollo · lanzamiento previsto este mes",
+        status: "En desarrollo · lanzamiento previsto en octubre de 2026",
         role: "Sistemas, progresión, VFX y dirección del juego",
         alt: "Un pequeño planeta flotando en un campo de estrellas morado",
         tags: ["Progresión", "Colección", "Mascotas", "VFX"],
@@ -331,7 +369,7 @@ window.PORTFOLIO = {
       },
       ca: {
         title: "Pocket Planet",
-        status: "En desenvolupament · llançament previst aquest mes",
+        status: "En desenvolupament · llançament previst l'octubre del 2026",
         role: "Sistemes, progressió, VFX i direcció del joc",
         alt: "Un petit planeta surant en un camp d'estrelles morat",
         tags: ["Progressió", "Col·lecció", "Mascotes", "VFX"],
@@ -354,6 +392,7 @@ window.PORTFOLIO = {
 
     {
       id: "sunset-party-club",
+      color: "#ff5fd2",
       years: "2023 – 2026",
       tone: "dev",
       developer: "ZPSTUDIOS",
@@ -363,7 +402,7 @@ window.PORTFOLIO = {
       ],
       en: {
         title: "Sunset Party Club",
-        status: "Revamp (2026) · release expected in 2 weeks",
+        status: "Revamp (2026) · release coming soon",
         role: "Gameplay, UI, audio and progression systems",
         alt: "The Sunset Party Club stage at night with green and purple spotlights and the DJ panel open",
         altExtra: "Collage of seven Sunset Party Club areas lit with neon",
@@ -386,7 +425,7 @@ window.PORTFOLIO = {
       },
       es: {
         title: "Sunset Party Club",
-        status: "Revamp (2026) · lanzamiento previsto en 2 semanas",
+        status: "Revamp (2026) · lanzamiento muy pronto",
         role: "Sistemas de juego, UI, audio y progresión",
         alt: "El escenario de Sunset Party Club de noche con focos verdes y morados y el panel de DJ abierto",
         altExtra: "Collage de siete zonas de Sunset Party Club iluminadas con neón",
@@ -409,7 +448,7 @@ window.PORTFOLIO = {
       },
       ca: {
         title: "Sunset Party Club",
-        status: "Revamp (2026) · llançament previst en 2 setmanes",
+        status: "Revamp (2026) · llançament molt aviat",
         role: "Sistemes de joc, UI, àudio i progressió",
         alt: "L'escenari de Sunset Party Club de nit amb focus verds i morats i el panell de DJ obert",
         altExtra: "Collage de set zones de Sunset Party Club il·luminades amb neó",
@@ -434,6 +473,7 @@ window.PORTFOLIO = {
 
     {
       id: "zpsentinel",
+      color: "#5fe0e6",
       years: "2026 –",
       tone: "private",
       developer: "ZPSTUDIOS",
@@ -494,6 +534,7 @@ window.PORTFOLIO = {
 
     {
       id: "mountain-party-club",
+      color: "#5fe08a",
       years: "2025",
       tone: "old",
       images: [{ src: "assets/img/mountain-party-club.jpg", w: 962, h: 515 }],
@@ -554,6 +595,7 @@ window.PORTFOLIO = {
   experience: [
     {
       id: "tce",
+      color: "#ef5f55",
       client: "Waterloo",
       image: { src: "assets/img/tce-continental-era.jpg", w: 1280, h: 720 },
       en: {

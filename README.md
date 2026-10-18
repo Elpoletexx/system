@@ -16,8 +16,9 @@ Static portfolio site (HTML, CSS and vanilla JS, no build step) in Catalan, Span
 
 Everything you will normally change is in `js/content.js`:
 
-- **Contact links**: fill the `contact` list (the footer section stays hidden while it is empty).
-- **Release dates / status**: each project's `status` text, per language. `tone` controls the status dot: `dev`, `live`, `private` or `old`.
+- **Contact**: the `contact` list (email, Discord, Roblox). For the Roblox entry, swap the search link for `https://www.roblox.com/users/<your user id>/profile` once you have the ID.
+- **Hero showreel**: `heroReel` lists the project ids whose images rotate in the hero.
+- **Release dates / status**: each project's `status` text, per language. `tone` controls the status dot: `dev`, `live`, `private` or `old`. `color` is the project's own accent.
 - **New project**: copy an existing entry in `projects`, change the `id`, `images` and the `en` / `es` / `ca` blocks.
 
 ## Running locally
