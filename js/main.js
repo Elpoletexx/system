@@ -107,12 +107,16 @@
       var value = t[el.getAttribute("data-i18n")];
       if (typeof value === "string") el.textContent = value;
     });
+    document.querySelectorAll("[data-i18n-label]").forEach(function (el) {
+      var value = t[el.getAttribute("data-i18n-label")];
+      if (typeof value === "string") el.setAttribute("aria-label", value);
+    });
 
     var skills = clear(document.getElementById("skills"));
     t["skills.items"].forEach(function (pair) {
       skills.appendChild(h("li", { class: "skill" }, h("span", { class: "skill__name", text: pair[0] }), h("span", { class: "skill__text", text: pair[1] })));
     });
-    document.getElementById("stack").textContent = DATA.stack.join(", ");
+    document.getElementById("stack").textContent = DATA.stack[currentLang].join(", ");
   }
 
   function renderHeroWork(lang) {
@@ -136,7 +140,7 @@
   /* ---------- Shared case pieces ---------- */
 
   function detailItem(item) {
-    if (Array.isArray(item)) return h("li", null, h("strong", { text: item[0] }), " " + item[1]);
+    if (Array.isArray(item)) return h("li", null, h("strong", { text: item[0] }), " — " + item[1]);
     return h("li", { text: item });
   }
 
@@ -148,7 +152,7 @@
 
   function collapsible(id, label, content) {
     var panelId = id + "-more";
-    var button = h("button", { type: "button", class: "more__toggle", "aria-expanded": "false", "aria-controls": panelId },
+    var button = h("button", { type: "button", class: "more__toggle", "aria-expanded": "false", "aria-controls": panelId, "aria-describedby": id + "-title" },
       h("span", { class: "more__icon", "aria-hidden": "true" }), h("span", { text: label })
     );
     var panel = h("div", { class: "collapse", id: panelId, inert: "" }, h("div", { class: "collapse__inner" }, content));
@@ -161,17 +165,17 @@
     return h("div", { class: "more" }, button, panel);
   }
 
-  function breakdown(id, details, t) {
+  function breakdown(id, details, t, level) {
     if (!details || !details.length) return null;
     return collapsible(id, t["label.more"], h("div", { class: "case__groups" }, details.map(function (group) {
-      return h("div", { class: "group" }, h("h4", { class: "label", text: group.title }), h("ul", null, group.items.map(detailItem)));
+      return h("div", { class: "group" }, h(level || "h4", { class: "label", text: group.title }), h("ul", null, group.items.map(detailItem)));
     })));
   }
 
-  function caseHead(title, metaItems, kicker) {
+  function caseHead(title, metaItems, kicker, id) {
     return h("header", { class: "case__head" },
       kicker ? h("p", { class: "case__kicker label", text: kicker }) : null,
-      h("h3", { class: "case__title", text: title }),
+      h("h3", { class: "case__title", id: id ? id + "-title" : null, text: title }),
       h("dl", { class: "case__meta" }, metaItems.filter(Boolean).map(function (m) {
         return h("div", null, h("dt", { class: "label", text: m[0] }), h("dd", null, h("span", { class: m[2] || null, text: m[1] })));
       }))
@@ -180,7 +184,7 @@
 
   function featureMedia(image, alt, t) {
     return h("div", { class: "case__media", "data-reveal": "clip" },
-      zoomable(h("img", { src: image.src, width: image.w, height: image.h, alt: alt, loading: "lazy", decoding: "async" }), t)
+      h("img", { src: image.src, width: image.w, height: image.h, alt: alt, loading: "lazy", decoding: "async" })
     );
   }
 
@@ -217,7 +221,7 @@
   function renderFeature(p, c, t) {
     var extra = p.images[1]
       ? h("figure", { class: "case__extra" },
-          zoomable(h("img", { src: p.images[1].src, width: p.images[1].w, height: p.images[1].h, alt: c.altExtra || "", loading: "lazy", decoding: "async" }), t))
+          h("img", { src: p.images[1].src, width: p.images[1].w, height: p.images[1].h, alt: c.altExtra || "", loading: "lazy", decoding: "async" }))
       : null;
 
     return h("article", { class: "case", id: p.id, style: "--p:" + p.color },
@@ -226,7 +230,7 @@
         [t["projects.index"][2], p.years],
         [t["label.role"], c.role],
         p.developer ? [t["label.developer"], p.developer] : null
-      ]),
+      ], null, p.id),
       featureMedia(p.images[0], c.alt, t),
       h("div", { class: "case__body" },
         h("div", { class: "case__lead" },
@@ -244,18 +248,19 @@
 
   function renderCompact(p, c, t) {
     var img = p.images[0];
+    var imgEl = h("img", { src: img.src, width: img.w, height: img.h, alt: c.alt, loading: "lazy", decoding: "async" });
     return h("article", { class: "case case--compact", id: p.id, style: "--p:" + p.color },
       h("div", { class: "case__thumb" + (p.fit === "contain" ? " case__thumb--contain" : "") },
-        zoomable(h("img", { src: img.src, width: img.w, height: img.h, alt: c.alt, loading: "lazy", decoding: "async" }), t)
+        img.w >= 640 ? zoomable(imgEl, t) : imgEl
       ),
-      h("h3", { class: "case__title", text: c.title }),
+      h("h4", { class: "case__title", id: p.id + "-title", text: c.title }),
       h("p", { class: "case__line" },
         h("span", { class: "tone tone--" + p.tone, text: statusText(p, c) }),
         h("span", { class: "case__years", text: p.years })
       ),
       h("p", { class: "case__summary", text: c.summary }),
       h("ul", { class: "points" }, c.highlights.map(function (item) { return h("li", { text: item }); })),
-      breakdown(p.id, c.details, t)
+      breakdown(p.id, c.details, t, "h5")
     );
   }
 
@@ -276,17 +281,16 @@
     DATA.experience.slice().reverse().forEach(function (job) {
       var c = job[lang];
       var bugRows = c.bugs.map(function (bug) {
-        return bug[1]
-          ? h("tr", null, h("td", { text: bug[0] }), h("td", { text: bug[1] }))
-          : h("tr", null, h("td", { colspan: "2", text: bug[0] }));
+        return h("tr", null, h("td", { text: bug[0] }), h("td", { text: bug[1], "data-label": t["experience.cause"] }));
       });
+      var hasOther = c.other && c.other.length;
 
       list.insertBefore(h("article", { class: "case case--job", id: job.id, style: "--p:" + job.color },
         caseHead(c.title, [
           [t["label.role"], c.role],
           [c.clientLabel, job.client],
           [t["label.period"], c.period, "tone tone--live"]
-        ], t["experience.title"]),
+        ], t["experience.title"], job.id),
         featureMedia(job.image, c.alt, t),
         h("p", { class: "case__summary case__summary--wide", text: c.summary }),
         h("div", { class: "job__block" },
@@ -300,7 +304,9 @@
               )),
               h("tbody", null, bugRows)
             )
-          )
+          ),
+          hasOther ? h("h5", { class: "label", text: t["experience.otherBugs"] }) : null,
+          hasOther ? h("ul", { class: "points" }, c.other.map(function (b) { return h("li", { text: b }); })) : null
         ),
         h("div", { class: "job__block" },
           h("h4", { class: "label", text: t["experience.systems"] }),
@@ -325,7 +331,7 @@
 
     body.appendChild(h("div", { class: "rates__col" },
       h("h3", { class: "label", text: t["rates.perTask"] }),
-      h("p", { class: "rate__price" }, task.price + " ", h("span", { class: "rate__via", text: t["rates.via"] + " " + task.method })),
+      h("p", { class: "rate__price" }, task.price[lang] + " ", h("span", { class: "rate__via", text: t["rates.via"] + " " + task.method })),
       h("p", { class: "rate__note", text: t["rates.crypto"] + " " + task.crypto[lang] })
     ));
 
@@ -341,7 +347,7 @@
           return h("li", { class: "plan" },
             h("span", { class: "plan__name", text: r[lang] }),
             h("span", { class: "plan__hours" }, h("strong", { text: String(r.hours) }), " " + t["rates.hoursUnit"]),
-            h("span", { class: "plan__price", text: r.price })
+            h("span", { class: "plan__price", text: r.price[lang] })
           );
         })
       )
@@ -350,15 +356,18 @@
 
   /* ---------- Contact and footer ---------- */
 
-  function copyButton(source, value, t) {
-    var button = h("button", { type: "button", class: "contact__copy", text: t["footer.copy"] });
+  function copyButton(source, value, label, t) {
+    var button = h("button", { type: "button", class: "contact__copy", "aria-label": t["footer.copy"] + " " + label, text: t["footer.copy"] });
     button.addEventListener("click", function () {
+      var status = document.getElementById("copy-status");
       function done() {
         button.textContent = t["footer.copied"];
         button.classList.add("is-done");
+        if (status) status.textContent = t["footer.copied"] + ": " + value;
         setTimeout(function () {
           button.textContent = t["footer.copy"];
           button.classList.remove("is-done");
+          if (status) status.textContent = "";
         }, 1600);
       }
       function selectFallback() {
@@ -387,12 +396,12 @@
       if (i === 0) {
         var email = contactValue(c, "contact__email");
         primary.appendChild(email);
-        primary.appendChild(copyButton(email, c.value, t));
+        primary.appendChild(copyButton(email, c.value, c.label, t));
         return;
       }
       var value = contactValue(c, "contact__value");
       list.appendChild(h("li", { class: "contact__row" },
-        h("span", { class: "contact__label label", text: c.label }), value, copyButton(value, c.value, t)
+        h("span", { class: "contact__label label", text: c.label }), value, copyButton(value, c.value, c.label, t)
       ));
     });
   }
@@ -400,7 +409,6 @@
   function renderFooter(t) {
     var footer = clear(document.getElementById("footer"));
     footer.appendChild(h("p", { class: "footer__brand" }, h("strong", { text: DATA.handle }), " — " + t["footer.built"]));
-    footer.appendChild(h("p", { class: "footer__accounts", text: DATA.contact.slice(1).map(function (c) { return c.label + ": " + c.value; }).join(" · ") }));
     footer.appendChild(h("a", { class: "footer__top", href: "#top", text: t["footer.top"] + " ↑" }));
   }
 
@@ -453,20 +461,34 @@
     observeReveals(isSwitch);
   }
 
-  // Re-renders in place: keeps the section the reader is looking at and any open breakdowns.
+  // Re-renders in place: keeps whatever the reader is looking at in the same spot, plus any open breakdowns.
   function switchLang(lang) {
-    var anchorId = null;
-    var anchorTop = 0;
-    var candidates = document.querySelectorAll(".case[id], #about, #rates, #contact");
-    for (var i = 0; i < candidates.length; i++) {
-      var r = candidates[i].getBoundingClientRect();
-      if (r.bottom > 80) { anchorId = candidates[i].id; anchorTop = r.top; break; }
+    var navHeight = nav.getBoundingClientRect().height;
+    var key = null;
+    var keyTop = 0;
+    if (document.querySelector(".hero").getBoundingClientRect().bottom < navHeight) {
+      var items = document.querySelectorAll("#project-index, .case[id] > *, .cases__more, #about, #rates, #contact");
+      var prev = null;
+      for (var i = 0; i < items.length; i++) {
+        var r = items[i].getBoundingClientRect();
+        if (r.top >= navHeight) {
+          var pick = r.top < window.innerHeight ? items[i] : prev;
+          if (pick) {
+            var owner = pick.parentElement.closest(".case[id]");
+            key = owner ? { id: owner.id, index: [].indexOf.call(owner.children, pick) } : { el: pick };
+            keyTop = pick.getBoundingClientRect().top;
+          }
+          break;
+        }
+        prev = items[i];
+      }
     }
     var open = [].map.call(document.querySelectorAll(".more__toggle[aria-expanded='true']"), function (b) {
       return b.getAttribute("aria-controls");
     });
 
     root.classList.add("no-anim");
+    document.querySelector(".hero").classList.add("is-settled");
     render(lang, true);
     open.forEach(function (id) {
       var panel = document.getElementById(id);
@@ -477,8 +499,9 @@
         button.setAttribute("aria-expanded", "true");
       }
     });
-    if (anchorId) {
-      window.scrollBy({ top: document.getElementById(anchorId).getBoundingClientRect().top - anchorTop, behavior: "instant" });
+    if (key) {
+      var target = key.el || document.getElementById(key.id).children[key.index];
+      if (target) window.scrollBy({ top: target.getBoundingClientRect().top - keyTop, behavior: "instant" });
     }
     requestAnimationFrame(function () {
       requestAnimationFrame(function () { root.classList.remove("no-anim"); });

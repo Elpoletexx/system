@@ -21,18 +21,14 @@ window.PORTFOLIO = {
   heroWork: [
     { id: "tce", focus: "50% 40%" },
     { id: "murder-after-dark", focus: "0% 50%" },
-    { id: "sunset-party-club", focus: "50% 50%" }
+    { id: "sunset-party-club", focus: "0% 50%" }
   ],
 
-  stack: [
-    "Roblox Studio",
-    "Luau",
-    "Client/Server",
-    "Roblox Networking",
-    "Data Persistence",
-    "Roblox UI",
-    "Roblox Audio"
-  ],
+  stack: {
+    en: ["Roblox Studio", "Luau", "Client/Server", "Roblox Networking", "Data Persistence", "Roblox UI", "Roblox Audio"],
+    es: ["Roblox Studio", "Luau", "Cliente/servidor", "Networking de Roblox", "Persistencia de datos", "UI de Roblox", "Audio de Roblox"],
+    ca: ["Roblox Studio", "Luau", "Client/servidor", "Networking de Roblox", "Persistència de dades", "UI de Roblox", "Àudio de Roblox"]
+  },
 
   ui: {
     en: {
@@ -41,6 +37,8 @@ window.PORTFOLIO = {
       "nav.rates": "Rates",
       "nav.contact": "Contact",
       "label.skip": "Skip to projects",
+      "label.sections": "Sections",
+      "label.language": "Language",
       "hero.role": "Roblox systems developer · Luau",
       "hero.title": "I build Roblox games from the server out.",
       "hero.lede": "I write Luau with the server as the authority: rounds and roles, combat and artillery, player building, economies and anti-cheat. Right now I am Lead Gameplay / Systems Developer on TCE: The Continental Era.",
@@ -59,9 +57,10 @@ window.PORTFOLIO = {
       "label.enlarge": "Enlarge image",
       "label.close": "Close",
       "experience.title": "Client work",
-      "experience.systems": "Systems I worked on",
+      "experience.systems": "Systems I've worked on",
       "experience.bugs": "Bugs traced to the root",
-      "experience.bugsIntro": "Many of these could not be fixed in the script where the symptom appeared. Each one meant following state across several systems until the real source turned up.",
+      "experience.bugsIntro": "Many of these could not be fixed in the script where the symptom appeared; finding the real source meant following state across several systems.",
+      "experience.otherBugs": "Other bugs",
       "experience.symptom": "Symptom",
       "experience.cause": "Cause",
       "experience.process": "Before changing inherited code",
@@ -69,7 +68,7 @@ window.PORTFOLIO = {
       "about.title": "About",
       "about.text": "Since 2023 I have designed and built Roblox games end to end: core frameworks, gameplay, UI, data, monetization and security. I work on my own titles and on client projects, including large inherited codebases.",
       "skills.title": "What I work on",
-      "skills.stackLabel": "Tools",
+      "skills.stackLabel": "Tools & areas",
       "skills.items": [
         ["Gameplay systems", "Rounds, roles, combat, progression, pets, building and NPCs."],
         ["Frameworks & architecture", "Modular services shared across places, built to keep growing."],
@@ -101,14 +100,16 @@ window.PORTFOLIO = {
       "nav.rates": "Tarifas",
       "nav.contact": "Contacto",
       "label.skip": "Saltar a los proyectos",
+      "label.sections": "Secciones",
+      "label.language": "Idioma",
       "hero.role": "Desarrollador de sistemas en Roblox · Luau",
       "hero.title": "Construyo juegos de Roblox empezando por el servidor.",
       "hero.lede": "Programo en Luau con el servidor como autoridad: rondas y roles, combate y artillería, construcción, economías y anticheat. Ahora mismo soy Lead Gameplay / Systems Developer en TCE: The Continental Era.",
       "hero.ctaPrimary": "Pide presupuesto",
-      "hero.ctaSecondary": "Ver proyectos",
+      "hero.ctaSecondary": "Mira los proyectos",
       "hero.status": "Disponible para encargos",
       "projects.title": "Proyectos",
-      "projects.intro": "Trabajo para clientes y juegos y sistemas propios. Las fechas de lanzamiento son estimaciones actuales.",
+      "projects.intro": "Trabajo para clientes, además de juegos y sistemas propios. Las fechas de lanzamiento son estimaciones actuales.",
       "projects.index": ["Proyecto", "Tipo", "Años", "Estado"],
       "projects.more": "Más proyectos",
       "status.active": "En curso",
@@ -121,7 +122,8 @@ window.PORTFOLIO = {
       "experience.title": "Trabajo para clientes",
       "experience.systems": "Sistemas en los que he trabajado",
       "experience.bugs": "Bugs rastreados hasta la raíz",
-      "experience.bugsIntro": "Muchos no se podían arreglar en el script donde aparecía el síntoma. Cada uno obligó a seguir el estado a través de varios sistemas hasta dar con el origen real.",
+      "experience.bugsIntro": "Muchos no se podían arreglar en el script donde aparecía el síntoma: para dar con el origen real había que seguir el estado a través de varios sistemas.",
+      "experience.otherBugs": "Otros bugs",
       "experience.symptom": "Síntoma",
       "experience.cause": "Causa",
       "experience.process": "Antes de tocar código heredado",
@@ -129,7 +131,7 @@ window.PORTFOLIO = {
       "about.title": "Sobre mí",
       "about.text": "Desde 2023 diseño y construyo juegos de Roblox de principio a fin: frameworks, gameplay, UI, datos, monetización y seguridad. Trabajo en mis propios juegos y en proyectos de clientes, incluidas bases de código heredadas de gran tamaño.",
       "skills.title": "En qué trabajo",
-      "skills.stackLabel": "Herramientas",
+      "skills.stackLabel": "Herramientas y áreas",
       "skills.items": [
         ["Sistemas de juego", "Rondas, roles, combate, progresión, mascotas, construcción y NPCs."],
         ["Frameworks y arquitectura", "Servicios modulares compartidos entre places, pensados para crecer."],
@@ -161,6 +163,8 @@ window.PORTFOLIO = {
       "nav.rates": "Tarifes",
       "nav.contact": "Contacte",
       "label.skip": "Vés als projectes",
+      "label.sections": "Seccions",
+      "label.language": "Idioma",
       "hero.role": "Desenvolupador de sistemes a Roblox · Luau",
       "hero.title": "Construeixo jocs de Roblox començant pel servidor.",
       "hero.lede": "Programo en Luau amb el servidor com a autoritat: rondes i rols, combat i artilleria, construcció, economies i anticheat. Ara mateix soc Lead Gameplay / Systems Developer a TCE: The Continental Era.",
@@ -168,7 +172,7 @@ window.PORTFOLIO = {
       "hero.ctaSecondary": "Mira els projectes",
       "hero.status": "Disponible per a encàrrecs",
       "projects.title": "Projectes",
-      "projects.intro": "Feina per a clients i jocs i sistemes propis. Les dates de llançament són estimacions actuals.",
+      "projects.intro": "Feina per a clients, a més de jocs i sistemes propis. Les dates de llançament són estimacions actuals.",
       "projects.index": ["Projecte", "Tipus", "Anys", "Estat"],
       "projects.more": "Més projectes",
       "status.active": "En curs",
@@ -181,7 +185,8 @@ window.PORTFOLIO = {
       "experience.title": "Feina per a clients",
       "experience.systems": "Sistemes en què he treballat",
       "experience.bugs": "Bugs rastrejats fins a l'arrel",
-      "experience.bugsIntro": "Molts no es podien arreglar a l'script on apareixia el símptoma. Cadascun va obligar a seguir l'estat a través de diversos sistemes fins a trobar l'origen real.",
+      "experience.bugsIntro": "Molts no es podien arreglar a l'script on apareixia el símptoma: per trobar l'origen real calia seguir l'estat a través de diversos sistemes.",
+      "experience.otherBugs": "Altres bugs",
       "experience.symptom": "Símptoma",
       "experience.cause": "Causa",
       "experience.process": "Abans de tocar codi heretat",
@@ -189,7 +194,7 @@ window.PORTFOLIO = {
       "about.title": "Sobre mi",
       "about.text": "Des del 2023 dissenyo i construeixo jocs de Roblox de principi a fi: frameworks, gameplay, UI, dades, monetització i seguretat. Treballo en els meus propis jocs i en projectes de clients, incloses bases de codi heretades de grans dimensions.",
       "skills.title": "En què treballo",
-      "skills.stackLabel": "Eines",
+      "skills.stackLabel": "Eines i àrees",
       "skills.items": [
         ["Sistemes de joc", "Rondes, rols, combat, progressió, mascotes, construcció i NPCs."],
         ["Frameworks i arquitectura", "Serveis modulars compartits entre places, pensats per créixer."],
@@ -268,7 +273,7 @@ window.PORTFOLIO = {
         role: "Fundador · Programador principal · Gameplay y sistemas",
         alt: "Menú principal de Murder After Dark con los botones Play, Inventory, Shop, Cases, Settings y Private Servers",
         tags: ["Deducción social", "Multijugador", "4 modos de juego", "Framework propio"],
-        summary: "Un murder mystery multijugador basado en la deducción social, rondas rápidas, progresión y varios modos de juego. He diseñado y construido casi toda la parte técnica: el framework, los sistemas de rondas, la lógica de juego, el networking, la integración de UI, los datos y la seguridad.",
+        summary: "Un murder mystery multijugador basado en la deducción social, rondas rápidas, progresión y varios modos de juego. He diseñado y construido la mayor parte del apartado técnico: el framework, los sistemas de rondas, la lógica de juego, el networking, la integración de UI, los datos y la seguridad.",
         highlights: [
           "Cuatro roles: Inocente, Sheriff, Asesino y Héroe",
           "Asignación de roles, rondas, votación de mapas, temporizadores y recuperación de rondas",
@@ -284,9 +289,9 @@ window.PORTFOLIO = {
             ["Free For All", "Un modo de combate más rápido, todos contra todos."],
             ["The Strangers", "Survival horror: de uno a tres Strangers cazan al resto. Los supervivientes tienen tiempo para esconderse, armas y munición limitadas, objetivos de escape, armas cuerpo a cuerpo que aturden, cinemáticas y finales propios."]
           ]},
-          { title: "Mapas", items: ["Grand Nocturne Hotel", "Midnight Express", "Ocean Crown", "Objetivo: una rotación de mapas más amplia para que las rondas no se repitan"] },
+          { title: "Mapas", items: ["Grand Nocturne Hotel", "Midnight Express", "Ocean Crown", "Objetivo: una rotación de mapas más amplia para que las rondas resulten menos repetitivas"] },
           { title: "UI / UX", items: ["Menú principal y flujo de juego", "Inventario, tienda y ajustes", "Servidores privados y modo espectador", "HUD de ronda, votación de mapas e información de rol", "Pantallas de progresión y cosméticos", "Rediseño completo en curso con un sistema de diseño unificado"] },
-          { title: "Cosméticos y monetización", items: ["Skins de cuchillo y pistola, cajas y gemas", "Emotes, animaciones de victoria y de eliminación", "Efectos personalizados para pistolas y cuchillos", "Ampliación de inventario y personalización de perfil", "Gamepasses opcionales: el juego principal nunca depende de comprar"] }
+          { title: "Cosméticos y monetización", items: ["Skins de cuchillo y pistola, cajas y gemas", "Emotes, animaciones de victoria y de eliminación", "Efectos personalizados para pistolas y cuchillos", "Ampliación de inventario y personalización de perfil", "Gamepasses opcionales: el juego base nunca depende de compras"] }
         ]
       },
       ca: {
@@ -296,7 +301,7 @@ window.PORTFOLIO = {
         role: "Fundador · Programador principal · Gameplay i sistemes",
         alt: "Menú principal de Murder After Dark amb els botons Play, Inventory, Shop, Cases, Settings i Private Servers",
         tags: ["Deducció social", "Multijugador", "4 modes de joc", "Framework propi"],
-        summary: "Un murder mystery multijugador basat en la deducció social, rondes ràpides, progressió i diversos modes de joc. He dissenyat i construït gairebé tota la part tècnica: el framework, els sistemes de rondes, la lògica de joc, el networking, la integració de la UI, les dades i la seguretat.",
+        summary: "Un murder mystery multijugador basat en la deducció social, rondes ràpides, progressió i diversos modes de joc. He dissenyat i construït la major part de l'apartat tècnic: el framework, els sistemes de rondes, la lògica de joc, el networking, la integració de la UI, les dades i la seguretat.",
         highlights: [
           "Quatre rols: Innocent, Sheriff, Assassí i Heroi",
           "Assignació de rols, rondes, votació de mapes, temporitzadors i recuperació de rondes",
@@ -312,9 +317,9 @@ window.PORTFOLIO = {
             ["Free For All", "Un mode de combat més ràpid, tots contra tots."],
             ["The Strangers", "Survival horror: d'un a tres Strangers cacen la resta. Els supervivents tenen temps per amagar-se, armes i munició limitades, objectius de fuga, armes cos a cos que atordeixen, cinemàtiques i finals propis."]
           ]},
-          { title: "Mapes", items: ["Grand Nocturne Hotel", "Midnight Express", "Ocean Crown", "Objectiu: una rotació de mapes més àmplia perquè les rondes no es repeteixin"] },
+          { title: "Mapes", items: ["Grand Nocturne Hotel", "Midnight Express", "Ocean Crown", "Objectiu: una rotació de mapes més àmplia perquè les rondes siguin menys repetitives"] },
           { title: "UI / UX", items: ["Menú principal i flux de joc", "Inventari, botiga i opcions", "Servidors privats i mode espectador", "HUD de ronda, votació de mapes i informació de rol", "Pantalles de progressió i cosmètics", "Redisseny complet en curs amb un sistema de disseny unificat"] },
-          { title: "Cosmètics i monetització", items: ["Skins de ganivet i pistola, caixes i gemmes", "Emotes, animacions de victòria i d'eliminació", "Efectes personalitzats per a pistoles i ganivets", "Ampliació d'inventari i personalització de perfil", "Gamepasses opcionals: el joc principal mai no depèn de comprar"] }
+          { title: "Cosmètics i monetització", items: ["Skins de ganivet i pistola, caixes i gemmes", "Emotes, animacions de victòria i d'eliminació", "Efectes personalitzats per a pistoles i ganivets", "Ampliació d'inventari i personalització de perfil", "Gamepasses opcionals: el joc base mai no depèn de compres"] }
         ]
       }
     },
@@ -337,7 +342,7 @@ window.PORTFOLIO = {
         alt: "The Sunset Party Club stage at night with green and purple spotlights and the DJ panel open",
         altExtra: "Collage of seven Sunset Party Club areas lit with neon",
         tags: ["Social", "Nightlife", "Audio-reactive", "Mobile"],
-        summary: "A social nightlife experience built around music, social interaction, customization and progression. It brings many gameplay, UI, audio and social systems together in one club. The 2026 revamp overhauls every system, with new lighting and sound and a smoother interface.",
+        summary: "A nightlife experience built around music, social interaction, customization and progression. It brings many gameplay, UI, audio and social systems together in one club. The 2026 revamp overhauls every system, with new lighting and sound and a smoother interface.",
         highlights: [
           "DJ and AudioAnalyzer systems with beat and drop detection",
           "Music-reactive lighting, lasers and particles",
@@ -361,7 +366,7 @@ window.PORTFOLIO = {
         alt: "El escenario de Sunset Party Club de noche con focos verdes y morados y el panel de DJ abierto",
         altExtra: "Collage de siete zonas de Sunset Party Club iluminadas con neón",
         tags: ["Social", "Vida nocturna", "Reactivo al audio", "Móvil"],
-        summary: "Una experiencia social de vida nocturna centrada en la música, la interacción, la personalización y la progresión. Reúne muchos sistemas de juego, UI, audio y sociales en un mismo club. El revamp de 2026 renueva todos los sistemas, con nueva iluminación y sonido y una interfaz más fluida.",
+        summary: "Una experiencia de vida nocturna centrada en la música, la interacción social, la personalización y la progresión. Reúne en un mismo club muchos sistemas sociales, de juego, de UI y de audio. El revamp de 2026 renueva todos los sistemas, con nueva iluminación y sonido y una interfaz más fluida.",
         highlights: [
           "Sistemas de DJ y AudioAnalyzer con detección de beats y drops",
           "Luces, láseres y partículas que reaccionan a la música",
@@ -385,7 +390,7 @@ window.PORTFOLIO = {
         alt: "L'escenari de Sunset Party Club de nit amb focus verds i morats i el panell de DJ obert",
         altExtra: "Collage de set zones de Sunset Party Club il·luminades amb neó",
         tags: ["Social", "Vida nocturna", "Reactiu a l'àudio", "Mòbil"],
-        summary: "Una experiència social de vida nocturna centrada en la música, la interacció, la personalització i la progressió. Reuneix molts sistemes de joc, UI, àudio i socials en un mateix club. El revamp del 2026 renova tots els sistemes, amb nova il·luminació i so i una interfície més fluida.",
+        summary: "Una experiència de vida nocturna centrada en la música, la interacció social, la personalització i la progressió. Reuneix en un mateix club molts sistemes socials, de joc, d'UI i d'àudio. El revamp del 2026 renova tots els sistemes, amb nova il·luminació i so i una interfície més fluida.",
         highlights: [
           "Sistemes de DJ i AudioAnalyzer amb detecció de beats i drops",
           "Llums, làsers i partícules que reaccionen a la música",
@@ -410,7 +415,7 @@ window.PORTFOLIO = {
       tone: "dev",
       layout: "compact",
       releaseBy: "2026-10",
-      images: [{ src: "assets/img/pocket-planet.jpg", w: 400, h: 225 }],
+      images: [{ src: "assets/img/pocket-planet.jpg", w: 576, h: 360 }],
       en: {
         title: "Pocket Planet",
         genre: "Collection and progression",
@@ -444,15 +449,15 @@ window.PORTFOLIO = {
         highlights: [
           "Bucle principal, progresión, mundos y flujo de UI",
           "Variantes de mascotas: Aqua, Fire, Snow, Rainy, Foggy, Rainbow, Oxidated, Corrupt y Godly",
-          "VFX propios para las mascotas de nivel alto, para que las raras se vean raras",
+          "VFX propios en las mascotas de nivel alto, para que se note su rareza",
           "VFX, partículas y SFX extra en planetas, recompensas y acciones clave",
-          "Tutorial y experiencia del primer jugador",
+          "Tutorial y primera experiencia de los jugadores nuevos",
           "Miles de tests automáticos y pruebas manuales en Studio antes de cada actualización"
         ],
         details: [
           { title: "Arreglado en las pruebas de lanzamiento", items: ["Problemas de progresión en el tutorial", "Exploits de portales", "Comportamiento de pruebas en el servidor", "Resets y estados de juego que permitían saltarse la progresión prevista"] },
-          { title: "También he hecho", items: ["Mundos y niveles adicionales", "Balance de la progresión", "Gamepasses y developer products", "Mejoras de rendimiento y muchísimas correcciones de bugs"] },
-          { title: "Más allá del código", items: ["Decidir qué contenido necesita el juego", "Retención y planificación de futuros mundos", "Pulido de la presentación", "Icono del juego, miniaturas y arte de monetización"] }
+          { title: "También he hecho", items: ["Mundos y niveles adicionales", "Equilibrado de la progresión", "Gamepasses y developer products", "Mejoras de rendimiento y muchísimas correcciones de bugs"] },
+          { title: "Más allá del código", items: ["Decidir qué contenido necesita el juego a continuación", "Retención y planificación de futuros mundos", "Pulido de la presentación", "Icono del juego, miniaturas y arte de monetización"] }
         ]
       },
       ca: {
@@ -466,15 +471,15 @@ window.PORTFOLIO = {
         highlights: [
           "Bucle principal, progressió, mons i flux de UI",
           "Variants de mascotes: Aqua, Fire, Snow, Rainy, Foggy, Rainbow, Oxidated, Corrupt i Godly",
-          "VFX propis per a les mascotes de nivell alt, perquè les rares es vegin rares",
+          "VFX propis per a les mascotes de nivell alt, perquè se'n noti la raresa",
           "VFX, partícules i SFX extra en planetes, recompenses i accions clau",
-          "Tutorial i experiència del primer jugador",
+          "Tutorial i primera experiència dels jugadors nous",
           "Milers de tests automàtics i proves manuals a Studio abans de cada actualització"
         ],
         details: [
           { title: "Arreglat a les proves de llançament", items: ["Problemes de progressió al tutorial", "Exploits de portals", "Comportament de proves al servidor", "Resets i estats de joc que permetien saltar-se la progressió prevista"] },
           { title: "També he fet", items: ["Mons i nivells addicionals", "Equilibri de la progressió", "Gamepasses i developer products", "Millores de rendiment i moltíssimes correccions de bugs"] },
-          { title: "Més enllà del codi", items: ["Decidir quin contingut necessita el joc", "Retenció i planificació de mons futurs", "Poliment de la presentació", "Icona del joc, miniatures i art de monetització"] }
+          { title: "Més enllà del codi", items: ["Decidir quin contingut necessita el joc a continuació", "Retenció i planificació de mons futurs", "Poliment de la presentació", "Icona del joc, miniatures i art de monetització"] }
         ]
       }
     },
@@ -627,22 +632,24 @@ window.PORTFOLIO = {
           ["Combat", "Server-authorized firing and damage, reload and ammo state, fire-rate limits, shot-origin and distance checks, bayonet and melee."],
           ["Artillery", "Multi-stage cannon loading, crew interactions, aiming and elevation limits, server-side projectiles, ownership and control claims."],
           ["Ranks & regiments", "Roblox group ranks mapped to uniforms, loadouts and permissions across Army, Navy and command groups, with cross-group priority."],
-          ["Uniforms", "Rank-based clothing, accessories and headwear, hair rules under military hats, respawn-safe, with exceptions for special ranks."],
+          ["Uniforms", "Rank-based clothing, accessories and headwear that persist through respawns; hair rules under military hats; exceptions for special ranks."],
           ["Teams & spawning", "Continental, British and Naval factions. Flag-based forward spawns with cooldowns and a fallback to base."],
           ["Objectives", "Capture zones, faction ownership, capture progress, battlefield timers and synced zone state."],
           ["Officer commands", "Rank-restricted command tools, validated against the right group for each branch."],
           ["Naval", "Navy ranks, uniforms, permissions and naval artillery. Fleet Battle and Blockade modes in preparation."]
         ],
-        // [symptom, cause]; leave cause empty when there is no separate cause
+        // [symptom, cause]; bugs without a separate cause go in other
         bugs: [
           ["Artillery unusable after its first shot", "Elevation validation, firing state and event timing interacting"],
           ["Officers losing command access", "Permissions checked against the wrong group"],
           ["Character initialization failing", "Dynamically created capture zones"],
-          ["Characters unable to auto-rotate after using a weapon", ""],
           ["Incorrect group-rank data", "Cached during gameplay"],
-          ["Stale zone references", "Copied event tables"],
-          ["Camera state breaking", "Mounted gameplay and outfit changes"],
-          ["Initialization differences between the land and naval places", ""]
+          ["Stale zone references", "Copied event tables"]
+        ],
+        other: [
+          "Characters unable to auto-rotate after using a weapon",
+          "Camera state breaking after mounted gameplay and outfit changes",
+          "Initialization differences between the land and naval places"
         ],
         process: [
           "Find which scripts are actually responsible for the behaviour.",
@@ -654,76 +661,80 @@ window.PORTFOLIO = {
       },
       es: {
         title: "TCE: The Continental Era",
-        genre: "Guerra de Independencia (cliente)",
+        genre: "Revolución americana (cliente)",
         role: "Lead Gameplay / Systems Developer",
         clientLabel: "Cliente",
-        period: "Agosto 2026 – actualidad",
+        period: "Agosto de 2026 – actualidad",
         alt: "Un soldado del Ejército Continental de uniforme junto a una bandera estadounidense en una colina nevada",
         summary: "Una experiencia multi-place sobre la Guerra de Independencia de Estados Unidos, con places separados para combate terrestre, guerra naval y entrenamiento. Mi trabajo es ampliar, estabilizar y modernizar un código en producción sin romper el gameplay que los jugadores ya conocen. Los rangos reales de los grupos de Roblox deciden el uniforme, el equipo, los accesos y la autoridad de cada jugador.",
         systems: [
           ["Combate", "Disparo y daño autorizados por el servidor, estado de recarga y munición, límite de cadencia, comprobación del origen del disparo y de la distancia, bayoneta y cuerpo a cuerpo."],
           ["Artillería", "Carga del cañón por fases, interacción de la dotación, límites de puntería y elevación, proyectiles en el servidor, propiedad y control de la pieza."],
-          ["Rangos y regimientos", "Rangos de grupos de Roblox asociados a uniformes, equipamiento y permisos en Ejército, Armada y mando, con prioridad entre grupos."],
-          ["Uniformes", "Ropa, accesorios y sombreros según el rango, reglas para el pelo bajo el sombrero militar, resistentes al respawn, con excepciones para rangos especiales."],
+          ["Rangos y regimientos", "Rangos de grupos de Roblox asociados a uniformes, equipamiento y permisos en los grupos del Ejército, la Armada y el mando, con prioridad entre grupos."],
+          ["Uniformes", "Ropa, accesorios y sombreros según el rango, que se conservan tras el respawn; reglas para el pelo bajo el sombrero militar y excepciones para rangos especiales."],
           ["Equipos y spawns", "Facciones Continental, Británica y Naval. Spawns avanzados en banderas con cooldown y vuelta a la base si no hay ninguna válida."],
           ["Objetivos", "Zonas de captura, control por facción, progreso de captura, temporizadores de batalla y estado de zona sincronizado."],
           ["Mando de oficiales", "Herramientas de mando restringidas por rango y validadas contra el grupo correcto de cada rama."],
           ["Naval", "Rangos, uniformes, permisos y artillería de la Armada. Modos Fleet Battle y Blockade en preparación."]
         ],
-        // [symptom, cause]; leave cause empty when there is no separate cause
+        // [symptom, cause]; bugs without a separate cause go in other
         bugs: [
           ["Artillería inutilizable tras el primer disparo", "Interacción entre la validación de elevación, el estado de disparo y el orden de los eventos"],
           ["Oficiales que perdían el acceso al mando", "Permisos comprobados contra el grupo equivocado"],
           ["Fallos al inicializar personajes", "Zonas de captura creadas dinámicamente"],
-          ["Personajes que dejaban de girar automáticamente tras usar un arma", ""],
           ["Datos de rango de grupo incorrectos", "Guardados en caché durante la partida"],
-          ["Referencias a zonas obsoletas", "Tablas de eventos copiadas"],
-          ["Estado de cámara roto", "Ir a caballo y cambiar de uniforme"],
-          ["Diferencias de inicialización entre los places terrestre y naval", ""]
+          ["Referencias a zonas obsoletas", "Tablas de eventos copiadas"]
+        ],
+        other: [
+          "Personajes que dejaban de girar automáticamente tras usar un arma",
+          "Estado de cámara roto tras ir a caballo y cambiar de uniforme",
+          "Diferencias de inicialización entre los places terrestre y naval"
         ],
         process: [
           "Averiguar qué scripts son realmente responsables del comportamiento.",
           "Mapear qué sistemas dependen de ellos.",
-          "Seguir qué partes del cliente y del servidor se comunican entre sí.",
+          "Rastrear qué partes del cliente y del servidor se comunican entre sí.",
           "Comprobar si el bug viene de la función actual o de un sistema heredado.",
-          "Asegurarme de que el cambio no rompe la compatibilidad en otro sitio."
+          "Garantizar que el cambio no rompa la compatibilidad en otro sitio."
         ]
       },
       ca: {
         title: "TCE: The Continental Era",
-        genre: "Guerra d'Independència (client)",
+        genre: "Revolució americana (client)",
         role: "Lead Gameplay / Systems Developer",
         clientLabel: "Client",
-        period: "Agost 2026 – actualitat",
+        period: "Agost del 2026 – actualitat",
         alt: "Un soldat de l'Exèrcit Continental d'uniforme al costat d'una bandera dels Estats Units en un turó nevat",
         summary: "Una experiència multi-place sobre la Guerra d'Independència dels Estats Units, amb places separats per al combat terrestre, la guerra naval i l'entrenament. La meva feina és ampliar, estabilitzar i modernitzar un codi en producció sense trencar el gameplay que els jugadors ja coneixen. Els rangs reals dels grups de Roblox decideixen l'uniforme, l'equip, els accessos i l'autoritat de cada jugador.",
         systems: [
           ["Combat", "Tret i dany autoritzats pel servidor, estat de recàrrega i munició, límit de cadència, comprovació de l'origen del tret i de la distància, baioneta i cos a cos."],
           ["Artilleria", "Càrrega del canó per fases, interacció de la dotació, límits de punteria i elevació, projectils al servidor, propietat i control de la peça."],
-          ["Rangs i regiments", "Rangs de grups de Roblox associats a uniformes, equipament i permisos a l'Exèrcit, l'Armada i el comandament, amb prioritat entre grups."],
-          ["Uniformes", "Roba, accessoris i barrets segons el rang, regles per als cabells sota el barret militar, resistents al respawn, amb excepcions per a rangs especials."],
+          ["Rangs i regiments", "Rangs de grups de Roblox associats a uniformes, equipament i permisos als grups de l'Exèrcit, l'Armada i el comandament, amb prioritat entre grups."],
+          ["Uniformes", "Roba, accessoris i barrets segons el rang, que es conserven després del respawn; regles per als cabells sota el barret militar i excepcions per a rangs especials."],
           ["Equips i spawns", "Faccions Continental, Britànica i Naval. Spawns avançats a les banderes amb cooldown i tornada a la base si no n'hi ha cap de vàlida."],
           ["Objectius", "Zones de captura, control per facció, progrés de captura, temporitzadors de batalla i estat de zona sincronitzat."],
           ["Comandament d'oficials", "Eines de comandament restringides per rang i validades contra el grup correcte de cada branca."],
           ["Naval", "Rangs, uniformes, permisos i artilleria de l'Armada. Modes Fleet Battle i Blockade en preparació."]
         ],
-        // [symptom, cause]; leave cause empty when there is no separate cause
+        // [symptom, cause]; bugs without a separate cause go in other
         bugs: [
           ["Artilleria inutilitzable després del primer tret", "Interacció entre la validació d'elevació, l'estat de tret i l'ordre dels esdeveniments"],
           ["Oficials que perdien l'accés al comandament", "Permisos comprovats contra el grup equivocat"],
           ["Errors en inicialitzar personatges", "Zones de captura creades dinàmicament"],
-          ["Personatges que deixaven de girar automàticament després de fer servir una arma", ""],
           ["Dades de rang de grup incorrectes", "Desades a la memòria cau durant la partida"],
-          ["Referències a zones obsoletes", "Taules d'esdeveniments copiades"],
-          ["Estat de càmera trencat", "Anar a cavall i canviar d'uniforme"],
-          ["Diferències d'inicialització entre els places terrestre i naval", ""]
+          ["Referències a zones obsoletes", "Taules d'esdeveniments copiades"]
+        ],
+        other: [
+          "Personatges que deixaven de girar automàticament després de fer servir una arma",
+          "Estat de càmera trencat després d'anar a cavall i canviar d'uniforme",
+          "Diferències d'inicialització entre els places terrestre i naval"
         ],
         process: [
           "Esbrinar quins scripts són realment responsables del comportament.",
           "Mapejar quins sistemes en depenen.",
-          "Seguir quines parts del client i del servidor es comuniquen entre si.",
+          "Rastrejar quines parts del client i del servidor es comuniquen entre si.",
           "Comprovar si el bug ve de la funció actual o d'un sistema heretat.",
-          "Assegurar-me que el canvi no trenca la compatibilitat en cap altre lloc."
+          "Garantir que el canvi no trenqui la compatibilitat enlloc més."
         ]
       }
     }
@@ -731,14 +742,14 @@ window.PORTFOLIO = {
 
   rates: {
     perTask: {
-      price: "$15 – $115",
+      price: { en: "$15 – $115", es: "15 – 115 $", ca: "15 – 115 $" },
       method: "PayPal",
       crypto: { en: "95 XRP or ≈ 0.00169 BTC", es: "95 XRP o ≈ 0,00169 BTC", ca: "95 XRP o ≈ 0,00169 BTC" }
     },
     longTerm: [
-      { hours: 20, price: "$500 – $1,100", en: "Part-time", es: "Media jornada", ca: "Mitja jornada" },
-      { hours: 30, price: "$1,500 – $2,200", en: "Extended", es: "Jornada ampliada", ca: "Jornada ampliada" },
-      { hours: 40, price: "$2,000 – $3,000+", en: "Full-time", es: "Jornada completa", ca: "Jornada completa" }
+      { hours: 20, price: { en: "$500 – $1,100", es: "500 – 1100 $", ca: "500 – 1100 $" }, en: "Part-time", es: "Media jornada", ca: "Mitja jornada" },
+      { hours: 30, price: { en: "$1,500 – $2,200", es: "1500 – 2200 $", ca: "1500 – 2200 $" }, en: "Extended", es: "Jornada ampliada", ca: "Jornada ampliada" },
+      { hours: 40, price: { en: "$2,000 – $3,000+", es: "2000 – 3000 $ o más", ca: "2000 – 3000 $ o més" }, en: "Full-time", es: "Jornada completa", ca: "Jornada completa" }
     ]
   }
 };
